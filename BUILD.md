@@ -53,8 +53,10 @@ magiclinux/
 │       ├── grimoire
 │       └── magic-apt
 ├── keys/
-│   ├── sign.key             → clave de firma (protegida)
-│   └── verify.pub           → clave pública de verificación
+│   ├── verify.pub           → clave pública de verificación (privada NUNCA en disco)
+│   └── # La clave privada de firma vive en HSM externo (YubiKey, Nitrokey, o cloud HSM).
+│       # El pipeline de CI nunca tiene acceso directo a la clave — usa cosign con
+│       # identidad OIDC (GitHub OIDC → Sigstore) o firma delegada al HSM vía PKCS#11.
 └── scripts/
     ├── stage1-base.sh
     ├── stage2-magic.sh
@@ -76,7 +78,14 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, linux, x64]
+    # ⚠️  Runners self-hosted requeridos para SLSA Level 3+
+    # Los runners de GitHub Actions públicos son superficie de ataque.
+    # El runner self-hosted debe estar:
+    #   - Aislado (hardware dedicado o VM efímera)
+    #   - Auditado (todas las operaciones logueadas)
+    #   - Con Secure Boot + TPM + disco encriptado
+    #   - Sin acceso a internet saliente excepto mirrors Debian firmados
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt install mmdebstrap mkosi ostree
@@ -96,14 +105,46 @@ jobs:
 Cada stage produce un manifest firmado:
 
 ```bash
-# Firmar la ISO
-signify -S -s keys/sign.key -m MagicLinux-1.0.iso  \
-  -o MagicLinux-1.0.iso.sig
+# Firmar la ISO — con HSM remoto vía Sigstore
+# La clave privada nunca está en el disco del runner
+cosign sign-blob \
+  --key hsm://<provider>/<key-id> \
+  --output-signature MagicLinux-1.0.iso.sig \
+  MagicLinux-1.0.iso
 
 # Verificar
-magic-verify --iso MagicLinux-1.0.iso              \
-  --signature MagicLinux-1.0.iso.sig               \
+magic-verify --iso MagicLinux-1.0.iso                \
+  --signature MagicLinux-1.0.iso.sig                 \
   --public-key keys/verify.pub
 ```
 
 El pipeline falla si cualquier etapa de verificación no pasa. No se publica ISO sin firma válida y test de integridad aprobado.
+
+### Reproducible Build Attestation
+
+Cada build produce un attestation siguiendo SLSA Level 3:
+
+```bash
+# Generar provenance (SLSA)
+slsa-generator-generic \
+  --artifact MagicLinux-<version>.iso \
+  --output attestation.intoto.jsonl
+
+# Firmar attestation con la misma identidad OIDC
+cosign attest \
+  --predicate attestation.intoto.jsonl \
+  --type slsa.dev/provenance/v1 \
+  MagicLinux-<version>.iso
+
+# Publicar transparency log
+cosign upload \
+  --rekor-url https://rekor.sigstore.dev \
+  --attestation attestation.intoto.jsonl
+
+# Verificable por cualquiera:
+# cosign verify-attestation --type slsa.dev/provenance/v1 \
+#   --certificate-identity <expected-oidc> \
+#   MagicLinux-<version>.iso
+```
+
+El manifest de build incluye: fuente del commit, parámetros de mmdebstrap/mkosi, hash de todos los inputs (deb packages, scripts, configs), y output hash de la ISO. Cualquier persona puede reproducir el build y comparar hashes.

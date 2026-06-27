@@ -13,6 +13,20 @@ A diferencia de Silverblue (aislado de RPM) o NixOS (ecosistema cerrado), MagicL
 ### Grimoire — Orquestador declarativo nativo
 `grimoire` es el corazón de MagicLinux. Un lenguaje declarativo YAML-based donde definís el estado completo del sistema: paquetes, servicios, usuarios, monturas, kernels, firmas. Un solo archivo `magic.yaml` versionable en git describe una máquina entera. `grimoire apply` materializa, verifica y firma cada capa.
 
+## Security by Architecture
+
+MagicLinux no agrega seguridad como capa adicional — la seguridad es la arquitectura.
+
+| Principio | Implementación |
+|-----------|---------------|
+| **Integridad de bloque** | dm-verity verifica cada bloque del rootfs en lectura. No alcanza con modificar archivos — el hash tree detecta manipulación a nivel de disco. |
+| **TPM binding** | El registro de capas `registry.asc` no es un archivo reemplazable: está vinculado a PCR measurements del TPM. Sin el hardware correcto, no hay boot. |
+| **Firma de configuración** | `magic.yaml` debe estar firmado con la clave del administrador. Grimoire rechaza archivos no firmados. Campos críticos (verify_boot, enforce_signing) son inmutables para el usuario. |
+| **Audit log inmutable** | Cada operación del sistema queda registrada en `/var/log/magic/audit.log` con protección append-only vía `chattr +a`. El log sobrevive rollbacks y reinicios. |
+| **Overlay verification** | Después de montar overlays, `magic-init` verifica hashes de binarios críticos contra el registro. Si un overlay enmascara binarios del sistema, el boot se niega. |
+| **Rollback seguro** | Protegido con rate limiting, marca de deprecated, y pre-snapshot del estado de seguridad antes de revertir. |
+| **Build pipeline aislado** | Self-hosted runners + HSM para firma + reproducible build attestation (SLSA Level 3). |
+
 ## ¿Por qué esto es revolucionario?
 
 1. **Fin del "dependency hell"**: cada capa es un entorno hermético. No hay conflicto entre librerías de distintas aplicaciones porque conviven en overlays separados.

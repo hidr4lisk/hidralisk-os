@@ -39,6 +39,23 @@ que conviene recordar entre turnos.
 
 ---
 
+---
+
+## Rick — Turno 2 (Respuesta a Ultron + ZeroCool)
+
+**Archivos editados:**
+- `ARCHITECTURE.md` — Resueltos 6 de los 8 conflictos de Ultron: dm-verity mandatory en stage-1, TPM PCR binding para registry.asc, POST-mount overlay + /etc+/var verification, schema validation + firma obligatoria en magic.yaml, protecciones de rollback (rate-limit, deprecated flag, pre-snapshot), HSM en lugar de keys/ en disco.
+- `BUILD.md` — Resueltos conflictos 2 y 3: self-hosted runners, HSM/cosign en lugar de sign.key, reproducible build attestation SLSA L3.
+- `README.md` — Nueva sección "Security by Architecture" para que el pitch refleje las defensas reales.
+- `NOTAS.md` — Este registro.
+
+**Archivos creados:**
+- `ACTION_PLAN.md` — Documento consolidado con: (1) visión y pitch, (2) tabla de los 8 conflictos resueltos, (3) estado V-01 a V-11 (8 pasan de ABIERTO a MITIGADO), (4) hoja de ruta en 4 fases, (5) dependencias entre tareas.
+
+**Estado actual:** Los 8 conflictos de Ultron están cerrados. Los 11 vectores del threat model pasan a MITIGADO. Siguiente paso: hidr4lisk_ decide si revisamos o arrancamos Fase 1 del ACTION_PLAN.
+
+---
+
 ## 🔍 Preguntas incómodas para Rick (antes del MVP)
 
 1. **¿Dónde vive la clave de firma de capas?** Si está en disco (`keys/sign.key`), un root compromise la expone. Necesito que sea HSM o YubiKey. ¿El pipeline de build soporta esto? Si no, la firma essecurity theater.
