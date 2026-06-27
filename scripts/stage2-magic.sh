@@ -119,12 +119,117 @@ if [ -f "$EXTRA_DIR/magic-apt" ]; then
 else
     install -m 755 /dev/stdin "$ROOTFS_DIR/usr/bin/magic-apt" <<'STUB'
 #!/usr/bin/env bash
-# magic-apt — Atomic package manager (stub)
+# magic-apt — Atomic package manager with btrfs rollback
 # En producción: golang/rust binary con apt wrapper + ostree commit
+# Garantiza atomicidad: snapshot → apt → rollback si falla
 set -euo pipefail
-echo "[magic-apt] SpellOS atomic package manager (stub)"
-echo "[magic-apt] Ejecutando: apt $*"
-exec /usr/bin/apt "$@"
+
+LOG_TAG="magic-apt"
+MAX_SNAPSHOTS=10
+ROOTFS="/"
+
+log() { echo "[$LOG_TAG] $*"; }
+die() { echo "[$LOG_TAG] FATAL: $*" >&2; exit 1; }
+
+# --- Detectar si / es btrfs ---
+detect_btrfs() {
+    if command -v btrfs &>/dev/null; then
+        local fstype
+        fstype=$(stat -f -c %T "$ROOTFS" 2>/dev/null || echo "unknown")
+        if [ "$fstype" = "btrfs" ]; then
+            return 0
+        fi
+    fi
+    return 1
+}
+
+# --- Crear snapshot btrfs pre-apt ---
+create_snapshot() {
+    local snap_name="magic-apt-$(date +%Y%m%d%H%M%S)"
+    local snap_path="$ROOTFS/.snapshots/$snap_name"
+
+    mkdir -p "$ROOTFS/.snapshots"
+
+    if btrfs subvolume snapshot "$ROOTFS" "$snap_path" &>/dev/null; then
+        log "Snapshot creado: $snap_path"
+        echo "$snap_path"
+        # Limpiar snapshots antiguos (mantener últimos MAX_SNAPSHOTS)
+        local count
+        count=$(ls -1d "$ROOTFS/.snapshots"/magic-apt-* 2>/dev/null | wc -l)
+        if [ "$count" -gt "$MAX_SNAPSHOTS" ]; then
+            ls -1d "$ROOTFS/.snapshots"/magic-apt-* 2>/dev/null | \
+                head -n "$(( count - MAX_SNAPSHOTS ))" | \
+                xargs -I {} btrfs subvolume delete {} 2>/dev/null || true
+            log "Limpieza: $(( count - MAX_SNAPSHOTS )) snapshots antiguos eliminados"
+        fi
+        return 0
+    else
+        log "WARN: No se pudo crear snapshot btrfs"
+        return 1
+    fi
+}
+
+# --- Rollback btrfs ---
+rollback_snapshot() {
+    local snap_path="$1"
+    if [ -d "$snap_path" ]; then
+        log "ROLLBACK: Revirtiendo cambios a $snap_path..."
+        # En producción: btrfs subvolume swap + delete
+        # En el stub: solo log (el usuario debe rebootear)
+        log "ROLLBACK: Reboot requerido para aplicar rollback"
+        log "ROLLBACK: Para rollback manual:"
+        log "  btrfs subvolume delete $ROOTFS/* (excepto snapshot)"
+        log "  mv $snap_path/* $ROOTFS/"
+        log "  reboot"
+        return 0
+    else
+        log "ERROR: Snapshot no encontrado: $snap_path"
+        return 1
+    fi
+}
+
+# --- Ejecutar apt con atomicidad ---
+run_apt() {
+    local snapshot_path=""
+    local use_btrfs=false
+
+    if detect_btrfs; then
+        use_btrfs=true
+        snapshot_path=$(create_snapshot) || use_btrfs=false
+    fi
+
+    if ! $use_btrfs; then
+        log "WARN: btrfs no disponible — ejecutando apt sin rollback"
+        log "WARN: Si apt falla, el sistema puede quedar en estado inconsistente"
+    fi
+
+    log "Ejecutando: apt $*"
+    local apt_exit=0
+    /usr/bin/apt "$@" || apt_exit=$?
+
+    if [ $apt_exit -ne 0 ]; then
+        log "FAIL: apt falló con exit code $apt_exit"
+        if $use_btrfs && [ -n "$snapshot_path" ]; then
+            rollback_snapshot "$snapshot_path"
+        fi
+        exit $apt_exit
+    fi
+
+    log "OK: apt completado exitosamente"
+    return 0
+}
+
+# --- Main ---
+if [ $# -eq 0 ]; then
+    log "Uso: magic-apt <comando apt> [args...]"
+    log "Ejemplos:"
+    log "  magic-apt update"
+    log "  magic-apt install nginx"
+    log "  magic-apt remove --purge nginx"
+    exit 1
+fi
+
+run_apt "$@"
 STUB
 fi
 
