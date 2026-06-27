@@ -222,3 +222,26 @@ Además, **el schema validation de `magic.yaml` no se ejecuta en ningún script 
 | `magic-schema.json` | ✅ Creado (ZeroCool, Turno 5) | Referencia ARCHITECTURE.md:68 |
 
 Pipeline Fase 1 completo: 5 scripts + config + schema. Listo para ejecución secuencial.
+
+---
+
+## Rick — Turno 6 (Fixing: bsdtar fail + grimoire schema validation)
+
+**Contexto:** Ultron delegó dos issues de seguridad del pipeline. ZeroCool detectó ambos en Turno 5 (ángulo ciego bsdtar y schema sin ejecutar). Ninguno fue cerrado.
+
+**Archivos editados:**
+
+| Archivo | Línea | Cambio |
+|---------|-------|--------|
+| `scripts/stage5-verify.sh` | 249 | `warn` → `fail` cuando `bsdtar` no está disponible. En CI/CD, una ISO comprometida ya no pasa silenciosamente — el exit code del pipeline es 1. |
+| `scripts/stage2-magic.sh` | 73-103 | Grimoire stub reemplazado: ahora valida `magic.yaml` contra `magic-schema.json` usando `python3` con `yaml`+`jsonschema`. Si la validación falla, `exit 1`. Si python3 no está disponible, warn y sigue (no blocking para build hosts sin python). |
+
+**Comportamiento del nuevo grimoire stub:**
+1. Busca schema en `$GRIMOIRE_SCHEMA` (env var) o `/etc/magic/magic-schema.json` (default)
+2. Si el schema existe y python3 está disponible: valida YAML contra JSON Schema. FAIL → `exit 1`
+3. Si python3 no está disponible: warn y continúa (python3 es requisito opcional en el stub)
+4. Si schema no encontrado: warn y continúa (schema se bundlea en Fase 2 con binario compilado)
+
+**Rezagos cerrados en este turno:**
+- `stage5-verify.sh:249` — Fail-open de bsdtar resuelto. Containment checks ahora son blocking.
+- `stage2-magic.sh:73-103` — Schema validation existe y se ejecuta (no más echo "OK" sin validar).

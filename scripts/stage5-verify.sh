@@ -246,7 +246,7 @@ if command -v bsdtar &>/dev/null; then
     # En producción: integrar con osv-scanner o grype
     warn "Escaneo de CVEs pendiente — integrar osv-scanner/grype en Fase 3"
 else
-    warn "bsdtar no disponible — containment checks limitados"
+    fail "bsdtar no disponible — containment checks obligatorios en CI/CD"
 fi
 
 # Verificar tamaño razonable

@@ -76,9 +76,38 @@ else
 # En producción: binario compilado con validación JSON Schema + firma
 set -euo pipefail
 MAGIC_YAML="${1:-/etc/magic/magic.yaml}"
+SCHEMA_FILE="${GRIMOIRE_SCHEMA:-/etc/magic/magic-schema.json}"
+
 echo "[grimoire] Validando $MAGIC_YAML..."
-echo "[grimoire] Schema validation: OK"
-echo "[grimoire] Firma: OK"
+if [ -f "$SCHEMA_FILE" ]; then
+    if command -v python3 &>/dev/null; then
+        PY_OK=0
+        python3 -c "
+import sys, json, yaml, jsonschema
+try:
+    with open('$MAGIC_YAML') as f:
+        data = yaml.safe_load(f)
+    with open('$SCHEMA_FILE') as f:
+        schema = json.load(f)
+    jsonschema.validate(data, schema)
+    print('OK')
+except Exception as e:
+    print('FAIL: ' + str(e))
+    sys.exit(1)
+" 2>/dev/null && PY_OK=1 || true
+        if [ "$PY_OK" = "1" ]; then
+            echo "[grimoire] Schema validation: OK"
+        else
+            echo "[FATAL] Schema validation FAILED — $MAGIC_YAML no cumple el schema" >&2
+            exit 1
+        fi
+    else
+        echo "[WARN] python3 no disponible — saltando validacion de schema"
+    fi
+else
+    echo "[WARN] Schema no encontrado en $SCHEMA_FILE — saltando validacion"
+fi
+echo "[grimoire] Firma: OK (stub)"
 echo "[grimoire] Apply de capas: OK (stub)"
 exit 0
 STUB
