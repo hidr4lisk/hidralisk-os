@@ -157,3 +157,33 @@ que conviene recordar entre turnos.
 **Correcciones contextuales en NOTAS.md:** restauré referencias históricas a "MagicLinux" (nombre original de la distro china) en la tabla de investigación de nombres, ya que el sed las pisó con SpellOS y rompían el sentido del documento.
 
 **Inconsistencia encontrada (no bloqueante):** HARDENING.md:136 todavía referencia `keys/sign.key` en el profile AppArmor de `magic-apt`. Rick actualizó BUILD.md para usar HSM/cosign, pero el AppArmor profile no fue actualizado. El path `/etc/magic/keys/sign.key` ya no debería existir — solo `verify.pub` vive en disco. Esto es un rezago menor que se resuelve en Fase 2.
+
+---
+
+## Rick — Turno 4 (Producción: Fase 1 del roadmap)
+
+**Contexto:** `hidr4lisk_` ordenó arrancar producción. Mesa ejecuta P1.1, P1.2 del roadmap. Ultron delegó 3 scripts + 1 config + 1 fix.
+
+**Archivos creados:**
+
+| Archivo | Propósito |
+|---------|-----------|
+| `mmdebstrap/bookworm.conf` | Configuración de mmdebstrap: mirror bookworm, variant custom, paquetes mínimos (kernel, ostree, btrfs-progs, grub-efi, shim-signed, dm-verity, apparmor) |
+| `scripts/stage1-base.sh` | P1.1 — Genera rootfs Debian minimizado vía mmdebstrap + custom hooks. Output: tarball firmado + checksum |
+| `scripts/stage2-magic.sh` | Stage-1 de BUILD.md — inyecta binarios magic-init/grimoire/magic-apt (stubs funcionales), configura systemd units (magic-init.service, grimoire-apply.service), crea estructura /etc/magic/ + magic.yaml por defecto |
+| `scripts/stage3-ostree.sh` | P1.2 — Crea repositorio ostree, commitea la capa, exporta tarball firmado. Genera `registry.asc` con TPM PCR binding placeholder + firma GPG del registro |
+
+**Archivos editados:**
+
+| Archivo | Cambio |
+|---------|--------|
+| `HARDENING.md:136` | Fix rezago detectado por ZeroCool en Turno 3: `/etc/magic/keys/sign.key` → `/etc/magic/keys/verify.pub` en AppArmor profile de magic-apt. La clave privada vive en HSM, solo `verify.pub` está en disco. |
+
+**Decisiones técnicas tomadas durante la producción:**
+
+1. **Stubs funcionales en bash**: magic-init, grimoire y magic-apt son scripts bash en el prototipo, no binarios compilados. El entrypoint y la API son idénticos a los de producción — el reemplazo por binarios Rust/Golang en Fase 2 es transparente. El contrato de systemd units ya está definido.
+2. **TPM PCR binding placeholder**: `registry.asc` incluye la sección de TPM con PCRs 0 y 7 (firmware y secure boot). El valor real se extiende en Fase 2 (P2.2) con `tpm2_pcrextend` usando el hash del registry firmado. La estructura del registro ya está definida para que magic-init stage-1 pueda parsearla.
+3. **mmdebstrap con hooks inline**: la configuración de paquetes está en `bookworm.conf`, pero los hooks de personalización los pasa `stage1-base.sh` vía `--customize-hook` por portabilidad entre versiones de mmdebstrap.
+4. **GPG key check tolerante**: si la clave GPG `build@spellos.dev` no existe en el sistema, los scripts generan placeholders. En build real con CI/CD, la clave se configura como secret del runner.
+
+**Rezago cerrado por este turno:** `HARDENING.md:136` — el AppArmor profile de magic-apt ahora referencia `verify.pub` en lugar de `sign.key`. La privada nunca estuvo en disco; el permiso de lectura a un path inexistente era ruido de configuración.

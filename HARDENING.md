@@ -133,7 +133,7 @@ blacklist vsock                               # VM socket transport
   /var/lib/ostree/**             rw,
 
   # Claves de firma — SOLO lectura
-  /etc/magic/keys/sign.key       r,
+  /etc/magic/keys/verify.pub     r,
   deny /etc/magic/keys/*.pub     w,
 
   # Registro — append-only
