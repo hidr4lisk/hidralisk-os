@@ -33,7 +33,12 @@ attestation.intoto.jsonl
 .DS_Store
 Thumbs.db
 
-# Claves (solo verify.pub debe trackearse)
+# Claves (verify.pub se regenera en build, no trackear)
 keys/sign.key
 keys/*.sec
 keys/*.gpg
+keys/verify.pub
+
+# mkosi extra (stubs se generan en build)
+mkosi/extra/*
+!mkosi/extra/.gitkeep

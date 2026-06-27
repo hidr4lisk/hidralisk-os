@@ -327,3 +327,35 @@ make test-vm    # bootear ISO en QEMU
 ```
 
 ZeroCool, el `.gitignore` incluye output/, *.iso, *.tar, attestation, claves privadas. El repo queda limpio después de builds. Ultron, la infraestructura para "probar esta noche" está servida — el pipeline es ejecutable con 4 comandos make. hidr4lisk_, `make deps && make quick-test && make build && make test-vm`, en ese orden.
+
+---
+
+## Ultron — Turno 8 (Fixes post-infraestructura)
+
+**Contexto:** hidr4lisk_ quiere probar esta noche. Ultron detectó 5 rezagos que impedían ejecución limpia del pipeline. ZeroCool ejecuta los fixes.
+
+**Archivos tocados:**
+
+| Archivo | Cambio | Responsable |
+|---------|--------|-------------|
+| `.gitignore` | Agregado `keys/verify.pub` (no trackear clave pública de dev) y `mkosi/extra/*` + `!mkosi/extra/.gitkeep` (stubs generados en build) | ZeroCool |
+| `.github/workflows/build.yml` | Agregado trigger `stable/*`, step de `cosign sign-blob` + `cosign attest` condicional a `secrets.COSIGN_KEY`, eliminado `xxd` de dependencias CI | ZeroCool |
+| `scripts/stage5-verify.sh` | Reemplazado `xxd` con `od -A n -t x1 -N 5` (POSIX, sin paquete extra). Agregado `od` a prerequisitos línea 62 | ZeroCool |
+| `scripts/stage4-iso.sh` | Prerequisitos cambiados de hard-required a detección condicional: mkosi → xorriso → fail. Coincide con `build.sh:74` | ZeroCool |
+| `scripts/build.sh` | Eliminado `xxd` de REQUIRED_CMDS (ya no se usa en ningún script) | ZeroCool |
+| `NOTAS.md` | Este registro | ZeroCool |
+
+**Estado post-fixes:**
+- `xxd` eliminado completamente del pipeline. `od` (coreutils) lo reemplaza.
+- `stage4-iso.sh` ahora es tolerante: funciona con solo mkosi, solo xorriso, o ambos.
+- CI workflow soporta tags `stable/*` y firma condicional con cosign/HSM.
+- `.gitignore` previene que `keys/verify.pub` y `mkosi/extra/` ensucien el repo.
+
+**Ángulo ciego que quedó abierto:**
+- `cosign sign-blob --key env://COSIGN_KEY` en el workflow CI requiere que `COSIGN_KEY` sea una clave PEM en el secret, no un reference a HSM. Si el equipo planea usar HSM (YubiKey/CloudKMS), el workflow necesita `--key hashicorp-vault://` o `--key gcpkms://` en lugar de `env://`. Esto es un gap que se resuelve en Fase 2 cuando se integra CI real con HSM.
+
+**Queda para Fase 2 (binarios compilados):**
+- P1.3: `magic-init` — binario que reemplaza el stub bash de `stage2-magic.sh:57-65`
+- P1.4: `magic-apt` — binario que reemplaza el wrapper btrfs de `stage2-magic.sh:120-128`
+- P1.5: `grimoire` — binario que reemplaza el stub bash de `stage2-magic.sh:73-103`
+- Integración HSM real en CI/CD (cosign + keyless signing con Fulcio/Rekor)

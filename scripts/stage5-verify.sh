@@ -59,7 +59,7 @@ echo ""
 
 # --- 0. Validar prerequisitos ---
 echo "═══ Fase 0: Prerequisitos ═══"
-for cmd in sha256sum; do
+for cmd in sha256sum od; do
     if ! command -v "$cmd" &>/dev/null; then
         fail "Falta binario: $cmd"
         exit 1
@@ -109,7 +109,7 @@ else
 fi
 
 # Verificar que es una ISO válida (magic bytes)
-MAGIC=$(xxd -l 5 -p "$ISO_FILE" 2>/dev/null || echo "")
+MAGIC=$(od -A n -t x1 -N 5 "$ISO_FILE" 2>/dev/null | tr -d ' \n' || echo "")
 if echo "$MAGIC" | grep -qi "4549444601"; then
     pass "Magic bytes ELF detectados (ISO híbrida UEFI)"
 elif [ -n "$MAGIC" ]; then

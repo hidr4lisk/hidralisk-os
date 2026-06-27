@@ -36,13 +36,30 @@ if [ ! -f "$ROOTFS_TAR" ]; then
 fi
 
 # --- Validar prerequisitos ---
-for cmd in mkosi xorriso sha256sum; do
-    if ! command -v "$cmd" &>/dev/null; then
-        echo "[FATAL] Falta binario: $cmd"
-        echo "        Instalar: apt install mkosi xorriso"
+HAS_MKOSI=false
+HAS_XORRISO=false
+HAS_SHA256SUM=false
+
+for cmd in sha256sum; do
+    if command -v "$cmd" &>/dev/null; then
+        HAS_SHA256SUM=true
+    else
+        echo "[FATAL] Falta binario requerido: $cmd"
         exit 1
     fi
 done
+
+if command -v mkosi &>/dev/null; then
+    HAS_MKOSI=true
+    echo "[STAGE-4] mkosi detectado — usando mkosi para ISO"
+elif command -v xorriso &>/dev/null; then
+    HAS_XORRISO=true
+    echo "[STAGE-4] mkosi no disponible — usando xorriso como fallback"
+else
+    echo "[FATAL] Ni mkosi ni xorriso están disponibles."
+    echo "        Instalar al menos uno: apt install mkosi  o  apt install xorriso"
+    exit 1
+fi
 
 echo "[STAGE-4] Generando ISO híbrida SpellOS $VERSION..."
 
@@ -213,43 +230,54 @@ options root=LABEL=SPELLOS ro single
 initrd  /initrd.img
 BOOTRECOV
 
-# --- Ejecutar mkosi ---
-echo "[STAGE-4] Ejecutando mkosi build..."
+# --- Ejecutar generación de ISO ---
 ISO_OUTPUT="$OUTDIR/SpellOS-$VERSION.iso"
 
-# mkosi genera la ISO con la configuración definida
-mkosi \
-    --directory="$MAGIC_ROOTFS" \
-    --output="$ISO_OUTPUT" \
-    --format=iso \
-    --bootable=yes \
-    --force \
-    2>&1 || {
-        echo "[WARN] mkosi falló o no está disponible. Generando ISO manual con xorriso..."
-        # Fallback: generar ISO manualmente con xorriso
-        ISO_LABEL="SPELLOS_$(echo "$VERSION" | tr '-' '_')"
-        xorriso -as mkisofs \
-            -r -J \
-            -joliet-long \
-            -V "$ISO_LABEL" \
-            -isohybrid-mbr /usr/lib/ISOLINUX/isohdpfx.bin \
-            -c boot.cat \
-            -b boot/grub/eltorito.img \
-            -no-emul-boot \
-            -boot-load-size 4 \
-            -boot-info-table \
-            --grub2-boot-info \
-            -eltorito-alt-boot \
-            -e boot/grub/efi.img \
-            -no-emul-boot \
-            -isohybrid-gpt-basdat \
-            -o "$ISO_OUTPUT" \
-            "$MAGIC_ROOTFS" 2>&1 || {
-                echo "[FATAL] No se pudo generar la ISO. Instalar mkosi o xorriso."
+if $HAS_MKOSI; then
+    echo "[STAGE-4] Generando ISO con mkosi..."
+    mkosi \
+        --directory="$MAGIC_ROOTFS" \
+        --output="$ISO_OUTPUT" \
+        --format=iso \
+        --bootable=yes \
+        --force \
+        2>&1 || {
+            if $HAS_XORRISO; then
+                echo "[WARN] mkosi falló. Usando xorriso como fallback..."
+                HAS_MKOSI=false
+            else
+                echo "[FATAL] mkosi falló y xorriso no está disponible."
                 rm -rf "$MAGIC_ROOTFS"
                 exit 1
-            }
-    }
+            fi
+        }
+fi
+
+if ! $HAS_MKOSI && $HAS_XORRISO; then
+    echo "[STAGE-4] Generando ISO con xorriso..."
+    ISO_LABEL="SPELLOS_$(echo "$VERSION" | tr '-' '_')"
+    xorriso -as mkisofs \
+        -r -J \
+        -joliet-long \
+        -V "$ISO_LABEL" \
+        -isohybrid-mbr /usr/lib/ISOLINUX/isohdpfx.bin \
+        -c boot.cat \
+        -b boot/grub/eltorito.img \
+        -no-emul-boot \
+        -boot-load-size 4 \
+        -boot-info-table \
+        --grub2-boot-info \
+        -eltorito-alt-boot \
+        -e boot/grub/efi.img \
+        -no-emul-boot \
+        -isohybrid-gpt-basdat \
+        -o "$ISO_OUTPUT" \
+        "$MAGIC_ROOTFS" 2>&1 || {
+            echo "[FATAL] xorriso falló al generar la ISO."
+            rm -rf "$MAGIC_ROOTFS"
+            exit 1
+        }
+fi
 
 # --- Limpiar rootfs temporal ---
 rm -rf "$MAGIC_ROOTFS"

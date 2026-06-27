@@ -3,7 +3,7 @@ name: SpellOS Build Pipeline
 on:
   push:
     branches: [main, master]
-    tags: ['v*']
+    tags: ['v*', 'stable/*']
   pull_request:
     branches: [main, master]
   workflow_dispatch:
@@ -39,7 +39,7 @@ jobs:
           sudo apt-get install -y -qq \
             mmdebstrap ostree xorriso gnupg \
             python3-yaml python3-jsonschema \
-            libarchive-tools xxd
+            libarchive-tools
 
       - name: Setup GPG key
         run: |
@@ -55,6 +55,21 @@ jobs:
         run: make test-vm
         env:
           QEMU_KVM: no
+
+      - name: Firmar ISO con cosign
+        if: ${{ env.COSIGN_KEY != '' }}
+        run: |
+          cosign sign-blob \
+            --key env://COSIGN_KEY \
+            --output-signature output/SpellOS-${{ env.VERSION }}.iso.sig \
+            output/SpellOS-${{ env.VERSION }}.iso
+          cosign attest \
+            --key env://COSIGN_KEY \
+            --predicate output/attestation.intoto.jsonl \
+            --type slsa.dev/provenance/v1 \
+            output/SpellOS-${{ env.VERSION }}.iso
+        env:
+          COSIGN_KEY: ${{ secrets.COSIGN_KEY }}
 
       - name: Upload ISO
         uses: actions/upload-artifact@v4
