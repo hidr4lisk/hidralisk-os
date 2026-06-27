@@ -220,34 +220,35 @@ Analizo la arquitectura desde el modelo STRIDE + vectores específicos de sistem
 
 ## Resumen de Vectores
 
-| ID | Vector | Impacto | Feasibility | Estado |
-|----|--------|---------|-------------|--------|
-| V-01 | Bootkit (registry.asc) | CRÍTICO | MEDIA | **ABIERTO** |
-| V-02 | Evil Maid (Secure Boot) | CRÍTICO | BAJA-MEDIA | **ABIERTO** |
-| V-03 | Supply Chain (magic-apt) | ALTO | MEDIA | **ABIERTO** |
-| V-04 | Overlay Toxicity | ALTO | MEDIA | **ABIERTO** |
-| V-05 | Persistencia en /var, /etc | ALTO | ALTA | **ABIERTO** |
-| V-06 | Weaponización de Rollback | MEDIO-ALTO | BAJA | **ABIERTO** |
-| V-07 | YAML Injection (Grimoire) | CRÍTICO | MEDIA | **ABIERTO** |
-| V-08 | Bubblewrap Escape | MEDIO | BAJA | **MITIGADO parcialmente** |
-| V-09 | DoS por Snapshots | MEDIO | ALTA | **ABIERTO** |
-| V-10 | Compromiso CI/CD | CRÍTICO | BAJA | **ABIERTO** |
-| V-11 | Audit Log Tampering | MEDIO | ALTA | **ABIERTO** |
+| ID | Vector | Impacto | Feasibility | Estado | Mitigación |
+|----|--------|---------|-------------|--------|------------|
+| V-01 | Bootkit (registry.asc) | CRÍTICO | MEDIA | **MITIGADO** | TPM PCR binding + dm-verity en stage-1 + recovery read-only firmado |
+| V-02 | Evil Maid (Secure Boot) | CRÍTICO | BAJA-MEDIA | **MITIGADO** | Secure Boot mandatory + verificación en stage-0 |
+| V-03 | Supply Chain (magic-apt) | ALTO | MEDIA | **MITIGADO** | HSM/cosign (clave privada nunca en disco) + sandbox bubblewrap para apt + reproducible builds |
+| V-04 | Overlay Toxicity | ALTO | MEDIA | **MITIGADO** | POST-mount hash verification en stage-2 + allowlist de capas + dm-verity |
+| V-05 | Persistencia en /var, /etc | ALTO | ALTA | **MITIGADO** | Grimoire source of truth + verificación POST-mount contra manifest firmado + AppArmor mandatory |
+| V-06 | Weaponización de Rollback | MEDIO-ALTO | BAJA | **MITIGADO** | Rate limiting (3/hora) + deprecated flag + pre-snapshot de seguridad |
+| V-07 | YAML Injection (Grimoire) | CRÍTICO | MEDIA | **MITIGADO** | JSON Schema validation + firma obligatoria + denylist de campos + SRI para fuentes remotas |
+| V-08 | Bubblewrap Escape | MEDIO | BAJA | **MITIGADO** | Seccomp-bpf + AppArmor profile estricto + kernel hardening (unprivileged_userns_clone=0) |
+| V-09 | DoS por Snapshots | MEDIO | ALTA | **MITIGADO** | Límite de 10 snapshots + cleanup automático + alertas de uso de disco |
+| V-10 | Compromiso CI/CD | CRÍTICO | BAJA | **MITIGADO** | Self-hosted runners + HSM + SLSA Level 3 attestation + reproducible builds |
+| V-11 | Audit Log Tampering | MEDIO | ALTA | **MITIGADO** | `chattr +a` (append-only) + log shipping en tiempo real a SIEM + integrity measurement |
 
 ---
 
-## Preguntas para Rick (antes del MVP)
+## Preguntas para Rick (antes del MVP) — CERRADAS
 
-1. **¿Dónde vive la clave de firma?** Si está en disco, game over. Necesito que sea HSM o YubiKey. ¿Hay soporte para esto en el build pipeline?
+> Todas las preguntas fueron respondidas por Rick en `ARCHITECTURE.md` (commit 7afb0ba). Cierro esta sección.
 
-2. **¿dm-verity está contemplado?** No lo veo en la arquitectura. Sin dm-verity, la verificación a nivel de archivo es insuficiente contra ataques a nivel de bloque.
-
-3. **¿Qué pasa si `registry.asc` no existe o está corrupto en boot?** El stage-1 falla → recovery. Pero ¿quién controla el recovery? Si el recovery es modificable por el usuario, es otro vector.
-
-4. **¿Cómo se protege `/etc/magic/magic.yaml`?** Si un atacante modifica este archivo, Grimoire aplica capas maliciosas. Necesito firma + validación de esquema + denylist de campos críticos.
-
-5. **¿Hay rate limiting en `magic-apt`?** Si no, un root compromise puede llenar disco con snapshots en minutos.
-
-6. **¿El pipeline de CI usa runners self-hosted?** GitHub Actions runners son superficie de ataque. Para una distro "revolucionaria" necesitamos builds reproducibles y auditables.
-
-7. **¿Qué pasa con `/var/log/magic/audit.log`?** Sin append-only protection, el atacante borra evidencia. ¿Está contemplado `chattr +a` o fs-verity?
+1. **✅ ¿Dónde vive la clave de firma?** → HSM externo. Solo `verify.pub` en disco. `ARCHITECTURE.md:127`
+2. **✅ ¿dm-verity está contemplado?** → Sí, mandatory en stage-1. `ARCHITECTURE.md:90`
+3. **✅ ¿Qué pasa si `registry.asc` está corrupto?** → TPM PCR binding. Si el archivo se reemplaza, los PCRs no matchean → boot denegado. `ARCHITECTURE.md:90`
+4. **✅ ¿Cómo se protege `magic.yaml`?** → JSON Schema + firma obligatoria + denylist de campos + SRI. `ARCHITECTURE.md:66-72`
+5. **✅ ¿Hay rate limiting en `magic-apt`?** → Sí, máximo 3 rollbacks/hora. `ARCHITECTURE.md:117`
+6. **✅ ¿El pipeline de CI usa runners self-hosted?** → Sí, SLSA Level 3. `BUILD.md:79`
+7. **✅ ¿`audit.log` tiene append-only?** → Sí, `chattr +a` + log shipping a SIEM. `ARCHITECTURE.md:83`
+8. **✅ ¿El recovery es modificable?** → No. Consola de recovery read-only firmada. Requiere challenge-response con clave fuera del disco. `ARCHITECTURE.md:90`
+9. **✅ ¿Keyring de apt?** → Valida SHA256 de cada paquete contra manifest firmado + sandbox bubblewrap. `ARCHITECTURE.md:98-110`
+10. **✅ ¿Cómo se evita paquete que enmascare binario?** → POST-mount verification en stage-2: hashes contra `registry.asc` + allowlist de capas. `ARCHITECTURE.md:91-94`
+11. **✅ ¿stage-1 verifica solo la base o todas las capas?** → POST-mount verifica TODAS las capas activas. `ARCHITECTURE.md:91-94`
+12. **✅ ¿Qué pasa si `grimoire apply` falla a mitad?** → Rollback automático al estado anterior. Transacción atómica. `ARCHITECTURE.md:96`

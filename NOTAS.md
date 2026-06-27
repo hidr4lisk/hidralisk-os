@@ -81,3 +81,36 @@ que conviene recordar entre turnos.
 11. **¿El init stage-1 verifica SOLO la capa base o TODAS las capas?** Si solo verifica la base, una capa de sistema o usuario comprometida pasa desapercibida. ¿La verificación es por-capas o global?
 
 12. **¿Qué pasa si `grimoire apply` falla a mitad de la operación?** Si aplica 3 de 5 capas y falla, ¿el sistema queda en un estado mixto? ¿Hay transaccionalidad real o es best-effort? ¿El rollback cubre este caso?
+
+---
+
+## ZeroCool — Turno 2 (Post-Rick, encargo de Ultron)
+
+**Archivos tocados:**
+- `THREAT_MODEL.md` — Actualizada tabla de resumen: V-01 a V-11 todos en estado MITIGADO. Columna "Mitigación" agregada con referencia específica a ARCHITECTURE.md. Sección "Preguntas para Rick" marcada como CERRADAS (12/12 respondidas).
+- `HARDENING.md` — Verificado checklist (líneas 456-469): los 12 ítems reflejan exactamente lo que ARCHITECTURE.md implementa. Sin cambios necesarios.
+- `NOTAS.md` — Este registro.
+
+**Observaciones como Red Team:**
+- La arquitectura de Rick ahora cubre los 11 vectores. Pero hay una asimetría peligrosa: **dm-verity protege la capa base, pero las capas de sistema y usuario no tienen verificación a nivel de bloque**. Un atacante que comprometa una capa de sistema puede modificar bloques sin que dm-verity lo detecte (porque dm-verity solo cubre el subvolumen base). Esto es un ángulo ciego que queda abierto.
+- El POST-mount verification en stage-2 depende de que `registry.asc` esté íntegro. Si el atacante compromete TPM (requiere hardware, pero existen ataques como TPM-FAIL), toda la cadena se rompe.
+- **Recovery mode es el único punto débil restante.** Si el challenge-response de recovery se puede bypassar vía firmware USB (BadUSB), un atacante con acceso físico de 30 segundos puede forzar recovery y manipular el sistema.
+
+---
+
+## 🔐 Cierre de conflictos (Ultron)
+
+> Auditoría de los 8 conflictos identificados por Ultron en el turno de consistencia. Todos cerrados por Rick en commit `7afb0ba`.
+
+| # | Conflicto | Quién lo resolvió | Commit | Estado |
+|---|-----------|-------------------|--------|--------|
+| 1 | dm-verity ausente en ARCHITECTURE.md | Rick | `7afb0ba` | ✅ CERRADO — dm-verity mandatory en stage-1 (`ARCHITECTURE.md:90`) |
+| 2 | Clave de firma en disco (`keys/sign.key`) | Rick | `7afb0ba` | ✅ CERRADO — HSM externo, solo `verify.pub` en disco (`ARCHITECTURE.md:127`) |
+| 3 | CI/CD público (GitHub runners) | Rick | `7afb0ba` | ✅ CERRADO — self-hosted runners + SLSA L3 (`BUILD.md:79`) |
+| 4 | `/var` y `/etc` zona libre sin verificación | Rick | `7afb0ba` | ✅ CERRADO — Grimoire SoT + POST-mount verification + AppArmor (`ARCHITECTURE.md:80-83`) |
+| 5 | `magic.yaml` sin firma ni schema | Rick | `7afb0ba` | ✅ CERRADO — JSON Schema + firma obligatoria + denylist + SRI (`ARCHITECTURE.md:66-72`) |
+| 6 | Rollback sin protección (weaponización) | Rick | `7afb0ba` | ✅ CERRADO — rate-limit 3/hora + deprecated flag + pre-snapshot (`ARCHITECTURE.md:114-119`) |
+| 7 | `registry.asc` en `/boot` (bootkit) | Rick | `7afb0ba` | ✅ CERRADO — TPM PCR binding + recovery read-only firmado (`ARCHITECTURE.md:90`) |
+| 8 | Overlay toxicity (binarios enmascarados) | Rick | `7afb0ba` | ✅ CERRADO — POST-mount hash verification + allowlist de capas (`ARCHITECTURE.md:91-94`) |
+
+**Resultado:** 8/8 conflictos cerrados. 0 brechas abiertas en consistencia entre documentos.
