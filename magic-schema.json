@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spellos.dev/schema/magic-v1.json",
+  "title": "SpellOS magic.yaml Schema",
+  "description": "JSON Schema para validación de magic.yaml — el archivo declarativo de configuración de SpellOS. Campos en 'integrity' son inmutables: el usuario no puede desactivar verify_boot ni enforce_signing.",
+  "type": "object",
+  "required": ["magic", "layers", "integrity"],
+  "additionalProperties": false,
+  "properties": {
+    "magic": {
+      "$id": "#magic",
+      "type": "object",
+      "description": "Metadatos del sistema SpellOS",
+      "required": ["version", "kernel", "base"],
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+(\\.[0-9]+)?$",
+          "description": "Versión semver de la configuración magic.yaml",
+          "examples": ["1.0", "1.2.3"]
+        },
+        "kernel": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+(\\.[0-9]+)?(-[a-zA-Z0-9]+)?$",
+          "description": "Versión del kernelLinux a utilizar",
+          "examples": ["6.8", "6.8.0", "6.8.1-custom"]
+        },
+        "base": {
+          "type": "string",
+          "pattern": "^(debian|ubuntu|fedora|arch):[a-zA-Z0-9._-]+$",
+          "description": "Distribución base y release (formato distro:release)",
+          "examples": ["debian:bookworm", "ubuntu:noble", "fedora:40"]
+        }
+      }
+    },
+    "layers": {
+      "$id": "#layers",
+      "type": "object",
+      "description": "Capas del sistema: system (paquetes del sistema), user (aplicaciones de usuario), session (efímero)",
+      "required": ["system", "user", "session"],
+      "additionalProperties": false,
+      "properties": {
+        "system": {
+          "$id": "#layers-system",
+          "type": "object",
+          "description": "Capa de sistema: paquetes core, servicios del sistema",
+          "required": ["packages"],
+          "additionalProperties": false,
+          "properties": {
+            "packages": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._+-]*$"
+              },
+              "uniqueItems": true,
+              "description": "Lista de paquetes del sistema a instalar (formato apt/dpkg)"
+            },
+            "services": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "enum": ["enabled", "disabled", "masked"]
+              },
+              "description": "Estado de servicios del sistema (systemd)"
+            }
+          }
+        },
+        "user": {
+          "$id": "#layers-user",
+          "type": "object",
+          "description": "Capa de usuario: aplicaciones, dotfiles, configuraciones personales",
+          "required": ["packages"],
+          "additionalProperties": false,
+          "properties": {
+            "packages": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._+-]*$"
+              },
+              "uniqueItems": true,
+              "description": "Lista de paquetes de usuario a instalar"
+            },
+            "dotfiles": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "URL del repositorio de dotfiles (requerirá SRI hash)"
+                },
+                "target": {
+                  "type": "string",
+                  "pattern": "^/home/[a-zA-Z0-9._-]+$",
+                  "description": "Directorio destino para los dotfiles"
+                },
+                "sri": {
+                  "type": "string",
+                  "pattern": "^(sha256-[a-zA-Z0-9+/=]+|sha512-[a-zA-Z0-9+/=]+)$",
+                  "description": "Subresource Integrity hash del repositorio de dotfiles"
+                }
+              }
+            }
+          }
+        },
+        "session": {
+          "$id": "#layers-session",
+          "type": "object",
+          "description": "Capa de sesión: paquetes efímeros que se descartan al reiniciar",
+          "required": ["packages", "ephemeral"],
+          "additionalProperties": false,
+          "properties": {
+            "packages": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._+-]*$"
+              },
+              "uniqueItems": true,
+              "description": "Lista de paquetes efímeros de sesión"
+            },
+            "ephemeral": {
+              "type": "boolean",
+              "const": true,
+              "description": "Debe ser siempre true — la capa de sesión es descartable por diseño"
+            }
+          }
+        }
+      }
+    },
+    "integrity": {
+      "$id": "#integrity",
+      "type": "object",
+      "description": "Configuración de integridad del sistema. Estos campos son INMUTABLES — el usuario no puede desactivarlos. El intento de hacerlo debe ser rechazado por Grimoire.",
+      "required": ["verify_boot", "enforce_signing", "audit_log"],
+      "additionalProperties": false,
+      "properties": {
+        "verify_boot": {
+          "type": "boolean",
+          "const": true,
+          "description": "INMUTABLE: siempre true. Habilita verificación de integridad en boot (dm-verity + TPM PCR binding). El usuario NO puede desactivar esto."
+        },
+        "enforce_signing": {
+          "type": "boolean",
+          "const": true,
+          "description": "INMUTABLE: siempre true. Requiere firma criptográfica en magic.yaml y todas las capas ostree. El usuario NO puede desactivar esto."
+        },
+        "audit_log": {
+          "type": "string",
+          "pattern": "^/var/log/magic/[a-zA-Z0-9._-]+$",
+          "description": "Ruta al directorio de audit log (append-only via chattr +a)",
+          "default": "/var/log/magic/audit"
+        }
+      }
+    }
+  },
+  "x-spellos-security": {
+    "immutable_fields": ["integrity.verify_boot", "integrity.enforce_signing", "layers.session.ephemeral"],
+    "denylist_patterns": ["exec", "script", "command", "eval", "system"],
+    "sri_required_fields": ["layers.user.dotfiles.source", "layers.system.repo.url"],
+    "description": "Metadatos de seguridad: campos inmutables no pueden ser modificados por el usuario. Patrones denylist bloquean ejecución inline. Fuentes remotas requieren SRI hash."
+  }
+}
