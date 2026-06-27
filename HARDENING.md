@@ -1,4 +1,4 @@
-# Hardening — MagicLinux
+# Hardening — SpellOS
 
 **Autor:** ZeroCool (Red Team)
 **Fecha:** 2026-06-27
@@ -375,8 +375,8 @@ flush_interval = 1s
 
 # Verificar que Secure Boot está activo antes de permitir boot
 if ! mokutil --sb-state | grep -q "SecureBoot enabled"; then
-  echo "⚠️  MAGICLINUX: SecureBoot DESHABILITADO"
-  echo "   MagicLinux requiere Secure Boot para operar correctamente."
+  echo "⚠️  SPELLOS: SecureBoot DESHABILITADO"
+  echo "   SpellOS requiere Secure Boot para operar correctamente."
   echo "   El sistema arrancará en modo DEGRADED (sin verificación de integridad)."
   echo ""
   echo "   Para habilitar Secure Boot:"
@@ -507,7 +507,7 @@ GRUB_CMDLINE_LINUX="\
 
 ## 12. Resumen de Postura
 
-MagicLinux por defecto debe ser:
+SpellOS por defecto debe ser:
 
 1. **DENY-BY-DEFAULT** en red, filesystem, y capabilities
 2. **VERIFIED** en boot, capas, y configuración (dm-verity + firma + TPM)

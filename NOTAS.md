@@ -145,3 +145,15 @@ que conviene recordar entre turnos.
 5. El branding existente puede pivotar: `grimoire` (YAML engine) + `spell` (config unit) + `SpellOS` (distro)
 
 **Próximo paso:** La mesa decide nombre. ZeroCool ejecuta replace global en 7 archivos (30+ ocurrencias).
+
+---
+
+## ZeroCool — Turno 3 (Rename global: MagicLinux → SpellOS)
+
+**Archivos tocados:** `README.md`, `ARCHITECTURE.md`, `BUILD.md`, `HARDENING.md`, `THREAT_MODEL.md`, `ACTION_PLAN.md`, `NOTAS.md`
+
+**Acción:** Replace global de `MagicLinux` → `SpellOS`, `MAGICLINUX` → `SPELLOS`, `magiclinux` → `spellos`. Total: 34 ocurrencias reemplazadas en 7 archivos. Verificación post-replace: 0 rezagos.
+
+**Correcciones contextuales en NOTAS.md:** restauré referencias históricas a "MagicLinux" (nombre original de la distro china) en la tabla de investigación de nombres, ya que el sed las pisó con SpellOS y rompían el sentido del documento.
+
+**Inconsistencia encontrada (no bloqueante):** HARDENING.md:136 todavía referencia `keys/sign.key` en el profile AppArmor de `magic-apt`. Rick actualizó BUILD.md para usar HSM/cosign, pero el AppArmor profile no fue actualizado. El path `/etc/magic/keys/sign.key` ya no debería existir — solo `verify.pub` vive en disco. Esto es un rezago menor que se resuelve en Fase 2.

@@ -1,4 +1,4 @@
-# Build Pipeline de MagicLinux
+# Build Pipeline de SpellOS
 
 ## Stack de herramientas
 
@@ -26,10 +26,10 @@
 ├─────────────────────────────────────────────────────┤
 │  Fase 4: Hybrid ISO                                 │
 │  mkosi --format=iso --hybrid                        │
-│  └── artifact: MagicLinux-<version>.iso              │
+│  └── artifact: SpellOS-<version>.iso              │
 ├─────────────────────────────────────────────────────┤
 │  Fase 5: Verification                               │
-│  magic-verify --iso MagicLinux-<version>.iso        │
+│  magic-verify --iso SpellOS-<version>.iso        │
 │  magic-verify --signature ./*.sig                   │
 │  └── resultado: PASS/FAIL + hash manifest            │
 └─────────────────────────────────────────────────────┘
@@ -38,7 +38,7 @@
 ## Estructura del repositorio
 
 ```
-magiclinux/
+spellos/
 ├── .github/workflows/build.yml
 ├── mmdebstrap/
 │   └── bookworm.conf        → configuración de mmdebstrap
@@ -70,7 +70,7 @@ magiclinux/
 El pipeline se ejecuta en cada tag semver o push a `stable/`:
 
 ```yaml
-name: Build MagicLinux ISO
+name: Build SpellOS ISO
 on:
   push:
     tags: ["v*"]
@@ -96,7 +96,7 @@ jobs:
       - run: ./scripts/stage5-verify.sh
       - uses: actions/upload-artifact@v4
         with:
-          name: MagicLinux-${{ github.ref_name }}.iso
+          name: SpellOS-${{ github.ref_name }}.iso
           path: output/*.iso
 ```
 
@@ -109,12 +109,12 @@ Cada stage produce un manifest firmado:
 # La clave privada nunca está en el disco del runner
 cosign sign-blob \
   --key hsm://<provider>/<key-id> \
-  --output-signature MagicLinux-1.0.iso.sig \
-  MagicLinux-1.0.iso
+  --output-signature SpellOS-1.0.iso.sig \
+  SpellOS-1.0.iso
 
 # Verificar
-magic-verify --iso MagicLinux-1.0.iso                \
-  --signature MagicLinux-1.0.iso.sig                 \
+magic-verify --iso SpellOS-1.0.iso                \
+  --signature SpellOS-1.0.iso.sig                 \
   --public-key keys/verify.pub
 ```
 
@@ -127,14 +127,14 @@ Cada build produce un attestation siguiendo SLSA Level 3:
 ```bash
 # Generar provenance (SLSA)
 slsa-generator-generic \
-  --artifact MagicLinux-<version>.iso \
+  --artifact SpellOS-<version>.iso \
   --output attestation.intoto.jsonl
 
 # Firmar attestation con la misma identidad OIDC
 cosign attest \
   --predicate attestation.intoto.jsonl \
   --type slsa.dev/provenance/v1 \
-  MagicLinux-<version>.iso
+  SpellOS-<version>.iso
 
 # Publicar transparency log
 cosign upload \
@@ -144,7 +144,7 @@ cosign upload \
 # Verificable por cualquiera:
 # cosign verify-attestation --type slsa.dev/provenance/v1 \
 #   --certificate-identity <expected-oidc> \
-#   MagicLinux-<version>.iso
+#   SpellOS-<version>.iso
 ```
 
 El manifest de build incluye: fuente del commit, parámetros de mmdebstrap/mkosi, hash de todos los inputs (deb packages, scripts, configs), y output hash de la ISO. Cualquier persona puede reproducir el build y comparar hashes.

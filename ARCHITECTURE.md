@@ -1,4 +1,4 @@
-# Arquitectura de MagicLinux
+# Arquitectura de SpellOS
 
 ## Filesystem inmutable: ostree + overlayfs
 
@@ -24,7 +24,7 @@ El modelo de capas se organiza en cuatro niveles:
 
 ## Grimoire — Lenguaje declarativo YAML-based
 
-`grimoire` es el orquestador declarativo nativo de MagicLinux. Su entrada es `magic.yaml` en la raíz del repositorio de configuración:
+`grimoire` es el orquestador declarativo nativo de SpellOS. Su entrada es `magic.yaml` en la raíz del repositorio de configuración:
 
 ```yaml
 magic:

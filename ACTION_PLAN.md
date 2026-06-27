@@ -1,4 +1,4 @@
-# ACTION_PLAN — MagicLinux
+# ACTION_PLAN — SpellOS
 
 **Fecha:** 2026-06-27
 **Estado:** Consolidado post-mesa (Rick arquitectura + ZeroCool threat/hardening + Ultron consistencia)
@@ -7,7 +7,7 @@
 
 ## 1. Visión y Pitch
 
-MagicLinux es la primera distribución Linux que resuelve la tensión histórica entre inmutabilidad y flexibilidad, entre declaratividad y compatibilidad, entre seguridad y usabilidad.
+SpellOS es la primera distribución Linux que resuelve la tensión histórica entre inmutabilidad y flexibilidad, entre declaratividad y compatibilidad, entre seguridad y usabilidad.
 
 **Diferenciación clave:**
 - Sistema inmutable por capas (ostree + overlayfs) compatible con paquetes `.deb`
@@ -108,7 +108,7 @@ MagicLinux es la primera distribución Linux que resuelve la tensión histórica
 |-------|-------------|-------------|
 | P4.1 | Secure Boot enforcement en instalador | P2.8 + P1.6 | Core |
 | P4.2 | magic-apt con pinning de repositorios + hash verification | P1.4 | Core |
-| P4.3 | MagicLinux ISO híbrida final con todas las defensas | P1-P3 | Build |
+| P4.3 | SpellOS ISO híbrida final con todas las defensas | P1-P3 | Build |
 | P4.4 | Documentación de instalación y hardening | P4.3 | Docs |
 | P4.5 | Release pública + transparency log + diffs reproducibles | P4.3 | Build |
 

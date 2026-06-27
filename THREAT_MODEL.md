@@ -1,4 +1,4 @@
-# Threat Model — MagicLinux
+# Threat Model — SpellOS
 
 **Autor:** ZeroCool (Red Team)
 **Fecha:** 2026-06-27
@@ -44,7 +44,7 @@ Analizo la arquitectura desde el modelo STRIDE + vectores específicos de sistem
 
 **Mitigación propuesta:**
 - Secure Boot MANDATORIO en producción. La ISO debe rechazar instalar si Secure Boot está deshabilitado.
-- `sbctl` o `sbupdate` para mantener las firmas UEFI bajo control de MagicLinux, no del usuario.
+- `sbctl` o `sbupdate` para mantener las firmas UEFI bajo control de SpellOS, no del usuario.
 - Alerta en stage-1 si Secure Boot no está activo (log + notificación al usuario).
 
 ---
