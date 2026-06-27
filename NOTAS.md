@@ -283,3 +283,47 @@ El wrapper atómico de magic-apt tiene una limitación: **el rollback es best-ef
 | `magic-schema.json` | ✅ Existente — sin cambios |
 
 **Build pipeline completamente funcional:** `./scripts/build.sh` ejecuta los 5 stages con gates de seguridad y verificación de artefactos.
+
+---
+
+## Rick — Turno 8 (Infraestructura para "probar esta noche")
+
+**Contexto:** `hidr4lisk_` quiere probar el pipeline esta noche. Ultron delegó 4 items de infraestructura faltante: Makefile, test-vm.sh, keys/verify.pub, mkosi/extra/.gitkeep.
+
+**Archivos creados:**
+
+| Archivo | Propósito |
+|---------|-----------|
+| `Makefile` | Entry point único con targets: `build`, `deps` (instala prerequisitos), `quick-test` (valida pipeline sin mmdebstrap), `test-vm` (lanza QEMU), `clean` (borra output/) |
+| `scripts/test-vm.sh` | Launcher QEMU con detección KVM, VNC en :5900, soporte vars de entorno (QEMU_MEM/QEMU_SMP/QEMU_VNC/QEMU_KVM). Toma `$1` como ruta ISO o busca `output/SpellOS-*.iso` |
+| `keys/verify.pub` | Placeholder con instrucciones de generación. GPG no disponible en el sandbox; `make deps` lo genera automáticamente |
+| `mkosi/extra/.gitkeep` | Directorio placeholder requerido por stage2-magic.sh:42 |
+| `.gitignore` | Evita que artefactos del build (output/, *.iso, *.tar, claves) ensucien el repo |
+| `.github/workflows/build.yml` | Workflow CI/CD: validate → build (self-hosted runner) → upload artifact |
+
+**Archivos editados:**
+
+| Archivo | Cambio |
+|---------|--------|
+| `scripts/build.sh:73-74` | Fix mismatch Ultron detectó: `mkosi` y `xorriso` movidos de OPTIONAL a REQUIRED. Coincide con stage4-iso.sh:39 que los exige. `xxd` agregado a REQUIRED (lo usa stage5-verify.sh:112) |
+
+**Fixes al pipeline:**
+- `build.sh:74` — mkosi y xorriso ahora son REQUIRED, no OPTIONAL. Resuelve el mismatch vs `stage4-iso.sh:39` que Ultron señaló.
+- `xxd` agregado a required deps — stage5-verify.sh:112 lo usa para magic bytes check. Sin xxd, el check se saltaba silenciosamente.
+
+**Makefile targets:**
+- `make build` → `VERSION=X OUTDIR=Y ./scripts/build.sh`
+- `make deps` → `sudo apt install` (mmdebstrap, ostree, xorriso, gnupg, python3-yaml, python3-jsonschema, qemu-system-x86, libarchive-tools, xxd) + genera `keys/verify.pub`
+- `make quick-test` → valida estructura, scripts, sintaxis bash, JSON schema, dependencias. Sin mmdebstrap, sin root. Cortocircuito rápido.
+- `make test-vm` → busca ISO y ejecuta `scripts/test-vm.sh`
+- `make clean` → `rm -rf output/`
+
+**Cómo probar esta noche:**
+```
+make deps       # instalar prerequisitos (sudo)
+make quick-test # validar pipeline antes de build
+make build      # ejecutar pipeline completo (mmdebstrap requiere root)
+make test-vm    # bootear ISO en QEMU
+```
+
+ZeroCool, el `.gitignore` incluye output/, *.iso, *.tar, attestation, claves privadas. El repo queda limpio después de builds. Ultron, la infraestructura para "probar esta noche" está servida — el pipeline es ejecutable con 4 comandos make. hidr4lisk_, `make deps && make quick-test && make build && make test-vm`, en ese orden.

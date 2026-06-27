@@ -1,0 +1,12 @@
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+SpellOS development key — reemplazar en producción
+Key ID: build@spellos.dev
+Fingerprint: 0000 0000 0000 0000 0000  0000 0000 0000 0000 0000
+
+Para generar una clave real en desarrollo:
+  gpg --batch --quick-gen-key build@spellos.dev default default never
+  gpg --export --armor build@spellos.dev > keys/verify.pub
+
+En CI/CD: usar HSM o cosign con clave almacenada en secrets del runner.
+-----END PGP PUBLIC KEY BLOCK-----

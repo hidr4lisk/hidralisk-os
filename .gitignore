@@ -1,0 +1,39 @@
+# SpellOS — archivos generados por el pipeline
+
+# Build output
+/output/
+/result/
+
+# Artefactos de stage individual
+*.tar
+*.tar.sig
+*.tar.sha256
+*.iso
+*.iso.sig
+*.iso.sha256
+registry.asc
+attestation.intoto.jsonl
+
+# Directorios temporales
+/tmp/
+/scratch/
+
+# Dependencias locales
+/vendor/
+/node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claves (solo verify.pub debe trackearse)
+keys/sign.key
+keys/*.sec
+keys/*.gpg

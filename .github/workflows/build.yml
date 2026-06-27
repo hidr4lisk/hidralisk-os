@@ -1,0 +1,64 @@
+name: SpellOS Build Pipeline
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag para el build'
+        required: false
+        default: ''
+
+env:
+  VERSION: ${{ github.event.inputs.version || github.ref_name || 'ci-$(date +%Y%m%d%H%M)' }}
+  GPG_KEY: build@spellos.dev
+  PYTHONUNBUFFERED: 1
+
+jobs:
+  validate:
+    name: Quick Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make quick-test
+
+  build:
+    name: Build SpellOS ISO
+    needs: validate
+    runs-on: [self-hosted, linux, x64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar dependencias
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
+            mmdebstrap ostree xorriso gnupg \
+            python3-yaml python3-jsonschema \
+            libarchive-tools xxd
+
+      - name: Setup GPG key
+        run: |
+          gpg --batch --quick-gen-key "$GPG_KEY" default default never 2>/dev/null
+          gpg --export --armor "$GPG_KEY" > keys/verify.pub
+
+      - name: Ejecutar pipeline
+        run: make build
+        env:
+          VERSION: ${{ env.VERSION }}
+
+      - name: Verificar ISO
+        run: make test-vm
+        env:
+          QEMU_KVM: no
+
+      - name: Upload ISO
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpellOS-${{ env.VERSION }}
+          path: output/SpellOS-*.iso*
+          retention-days: 30

@@ -70,8 +70,8 @@ echo ""
 # ═══════════════════════════════════════════════════════════
 echo "═══ Fase 0: Prerequisitos del host ═══"
 
-REQUIRED_CMDS=(mmdebstrap gpg sha256sum ostree bsdtar python3)
-OPTIONAL_CMDS=(mkosi xorriso cosign)
+REQUIRED_CMDS=(mmdebstrap gpg sha256sum ostree bsdtar python3 mkosi xorriso xxd)
+OPTIONAL_CMDS=(cosign)
 
 MISSING_REQUIRED=()
 MISSING_OPTIONAL=()
