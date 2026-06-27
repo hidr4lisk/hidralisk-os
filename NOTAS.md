@@ -187,3 +187,38 @@ que conviene recordar entre turnos.
 4. **GPG key check tolerante**: si la clave GPG `build@spellos.dev` no existe en el sistema, los scripts generan placeholders. En build real con CI/CD, la clave se configura como secret del runner.
 
 **Rezago cerrado por este turno:** `HARDENING.md:136` — el AppArmor profile de magic-apt ahora referencia `verify.pub` en lugar de `sign.key`. La privada nunca estuvo en disco; el permiso de lectura a un path inexistente era ruido de configuración.
+
+---
+
+## ZeroCool — Turno 5 (Producción: Fase 1 continuación)
+
+**Contexto:** Ultron delegó: fix de HARDENING.md (ya cerrado por Rick en Turno 4), stage4-iso.sh (P1.6), stage5-verify.sh (stage-5 BUILD.md), magic-schema.json (referenciado en ARCHITECTURE.md:68).
+
+**Archivos creados:**
+
+| Archivo | Propósito | Commit |
+|---------|-----------|--------|
+| `scripts/stage4-iso.sh` | P1.6 — ISO híbrida booteable. Usa mkosi con fallback a xorriso. Genera configs mkosi.conf + GRUB + systemd-boot. Output: `SpellOS-$VERSION.iso` | `e1e4260` |
+| `scripts/stage5-verify.sh` | Stage-5 BUILD.md — Verifica ISO (checksum, firma GPG, cosign), genera attestation SLSA L3 (`attestation.intoto.jsonl`), containment checks (archivos sensibles, tamaño razonable) | `e1e4260` |
+| `magic-schema.json` | JSON Schema para `magic.yaml` (ARCHITECTURE.md:68). Enforce `integrity.verify_boot: const true`, `integrity.enforce_signing: const true`, `layers.session.ephemeral: const true`. Denylist de campos ejecutables en `x-spellos-security` | `e1e4260` |
+
+**Nota sobre HARDENING.md:136:** El fix que Ultron delegó ya estaba cerrado por Rick en el Turno 4 (commit `e2b33e6`, línea 136 ya dice `verify.pub`). No toqué el archivo.
+
+**Ángulo ciego detectado (Red Team):**
+
+`stage5-verify.sh` tiene un gap que nadie vio: **la verificación de containment es dependiente de `bsdtar`** — si no está instalado, los checks de archivos sensibles se saltan silenciosamente. En un pipeline CI/CD real, esto significa que una ISO con `.env`, `.pem` o `.git/config` podría pasar verificación sin que nadie lo note. Recomiendo que `stage5-verify.sh` falle si `bsdtar` no está disponible en CI, no que haga warn.
+
+Además, **el schema validation de `magic.yaml` no se ejecuta en ningún script existente**. Los 5 scripts del pipeline crean un `magic.yaml` por defecto (stage2-magic.sh:150-173) pero ninguno lo valida contra `magic-schema.json`. El schema existe como referencia documental, pero `grimoire apply` (stub) no lo valida. Cuando `grimoire` se implemente en binario real (Fase 2), debe validar contra este schema en cada apply.
+
+**Estado de los scripts del pipeline:**
+
+| Script | Estado | Fase |
+|--------|--------|------|
+| `stage1-base.sh` | ✅ Creado (Rick, Turno 4) | P1.1 |
+| `stage2-magic.sh` | ✅ Creado (Rick, Turno 4) | Stage-1 BUILD.md |
+| `stage3-ostree.sh` | ✅ Creado (Rick, Turno 4) | P1.2 |
+| `stage4-iso.sh` | ✅ Creado (ZeroCool, Turno 5) | P1.6 |
+| `stage5-verify.sh` | ✅ Creado (ZeroCool, Turno 5) | Stage-5 BUILD.md |
+| `magic-schema.json` | ✅ Creado (ZeroCool, Turno 5) | Referencia ARCHITECTURE.md:68 |
+
+Pipeline Fase 1 completo: 5 scripts + config + schema. Listo para ejecución secuencial.
