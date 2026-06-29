@@ -10,6 +10,7 @@
 #
 # Usamos solo módulos `shell` (apt-get directo) para no depender de plugins.
 
+version: 1
 name: Hidralisk OS (spike Vib)
 id: hidralisk-os
 stages:
