@@ -66,4 +66,10 @@ Por qué:
   `/etc/hidralisk-os-release`. **La pared #1 (apt-layering sobre base inmutable) resuelta.**
   Nota: `core` no necesita `lpkg --unlock` (su capa no está trabada; eso es de `desktop`).
   Detalle → [`../../vib/README.md`](../../vib/README.md).
-- [ ] Spike-4 — bootear una imagen Hidralisk OS de verdad (ISO live de Vanilla / deploy ABRoot) en KVM.
+- [x] **Spike-4a — ✅ VALIDADO (2026-06-29).** Construimos la ISO live de Vanilla en el Lab
+  (`live-iso` vía contenedor `pico` + `live-build`) → `VanillaOS-2-stable.20260629.iso` (2.2 GB) y
+  **booteó en KVM con GUI** (UEFI/OVMF, virt-manager). Valida el toolchain de build+boot end-to-end
+  sobre nuestra infra. (Contenido stock de Vanilla todavía — nuestra imagen entra en 4b.)
+- [ ] Spike-4b — que la ISO/instalado diga **Hidralisk OS**: inyectar `hidralisk-os:vib`. Dos caminos:
+  (a) `abroot upgrade` a `ghcr.io/hidr4lisk/hidralisk-os` sobre un Vanilla instalado, o
+  (b) tocar la receta del vanilla-installer para que despliegue nuestra imagen.
