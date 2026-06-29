@@ -70,6 +70,30 @@ Por qué:
   (`live-iso` vía contenedor `pico` + `live-build`) → `VanillaOS-2-stable.20260629.iso` (2.2 GB) y
   **booteó en KVM con GUI** (UEFI/OVMF, virt-manager). Valida el toolchain de build+boot end-to-end
   sobre nuestra infra. (Contenido stock de Vanilla todavía — nuestra imagen entra en 4b.)
-- [ ] Spike-4b — que la ISO/instalado diga **Hidralisk OS**: inyectar `hidralisk-os:vib`. Dos caminos:
-  (a) `abroot upgrade` a `ghcr.io/hidr4lisk/hidralisk-os` sobre un Vanilla instalado, o
-  (b) tocar la receta del vanilla-installer para que despliegue nuestra imagen.
+- [x] **Spike-4b — ✅ VALIDADO (2026-06-29).** Un sistema **Hidralisk OS** instalado en KVM,
+  booteando **desde nuestra imagen OCI**. Prueba dura (`abroot status` en el instalado):
+  ```
+  ABRoot Partitions: Present: vos-a ✓  ·  Future: vos-b
+  ABImage:  Image: ghcr.io/hidr4lisk/hidralisk-os:latest
+            Digest: sha256:1905d5a5…  ·  Timestamp: 2026-06-29 20:39:52
+  Kernel Arguments: … lsm=integrity
+  ```
+  Más `/etc/hidralisk-os-release` → `NAME="Hidralisk OS"`, `sshd active`, `qemu-guest-agent`
+  respondiendo (entré por SSH a verificar). **Camino que funcionó (b): ISO custom.**
+
+  **Dos lecciones duras del spike (claves para repetirlo):**
+  1. **`core` NO es base instalable.** El instalador (albius) corre un pre-script de initramfs
+     `lpkg --unlock` al desplegar, y `core` **no trae `lpkg`** → `panic: initramfs pre-script
+     'lpkg --unlock' failed`. Hay que construir sobre **`ghcr.io/vanilla-os/desktop`** (la base
+     instalable, que sí trae `lpkg` + kernel + ABRoot + GRUB), con el patrón oficial de Vanilla
+     (`vm-image/recipe.yml`): **`lpkg --unlock` → apt → `lpkg --lock`**. El recipe nuevo
+     (`vib/recipe.yml`) ya usa esto + agrega `qemu-guest-agent`/`spice-vdagent` (acceso a la VM).
+     > Nota: el Spike-3 eligió `core` por evitar `lpkg`; vale para *validar apt-layering*, pero
+     > `core` es base de **build**, no de **install**. Para producto: `desktop`.
+  2. **El instalador elige la imagen por su `recipe.json`** (`/etc/vanilla-installer/recipe.json`).
+     Shippeamos uno propio en la ISO vía hook del chroot (`iso/hooks/078-hidralisk-recipe.chroot`):
+     `distro_name: "Hidralisk OS"` + las 3 imágenes (`default`/`nvidia`/**`vm`**, ojo: en KVM
+     dispara `vm`) → `ghcr.io/hidr4lisk/hidralisk-os`. El `abroot upgrade` manual (camino a) quedó
+     descartado: en la práctica chocó con el contenedor apx read-only y el teclado por VNC.
+- [ ] Spike-5 (polish, opcional) — branding propio (pisar `/etc/os-release`, logos del instalador,
+  GRUB/Plymouth), y evaluar una base instalable más liviana que `desktop` (headless/server).

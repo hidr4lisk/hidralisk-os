@@ -1,6 +1,6 @@
 # ADR-001 — Base tecnológica: ¿construir de cero o sobre lo que ya existe?
 
-- **Estado:** Propuesta (espera OK de fede) · **Fecha:** 2026-06-29
+- **Estado:** ✅ Aceptada (fede, 2026-06-29) · **Fecha:** 2026-06-29
 - **Contexto previo:** `ESTADO.md` §2.1 ("no reinventar lo inventado")
 - **Decisión que cierra:** la pregunta-gate de todo el proyecto, antes de codear `overmind`/`hidra-init`/`hidra-apt`.
 

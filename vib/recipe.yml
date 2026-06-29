@@ -1,41 +1,42 @@
-# Hidralisk OS — Spike-3: receta Vib mínima sobre la base inmutable de Vanilla OS.
+# Hidralisk OS — receta Vib sobre la base INSTALABLE de Vanilla (`desktop`).
 #
-# Valida lo que la pared #1 del Spike-1/2 bloqueaba (ver ADR-002): instalar paquetes
-# con apt sobre una base Debian inmutable real. La clave es `lpkg --unlock` (mecanismo
-# de Vanilla que destraba la capa de paquetes en build) — justo lo que a bootcrew le
-# faltaba. Vanilla core SÍ trae la DB de dpkg (962 paquetes, verificado).
+# Spike-4b: la base `core` NO es instalable por el instalador (albius): no trae `lpkg`,
+# y el pre-script de initramfs `lpkg --unlock` que corre albius al desplegar FALLA
+# ("panic: initramfs pre-script 'lpkg --unlock' failed"). Vanilla construye sus imágenes
+# instalables (vm/desktop) SOBRE `desktop`, con el patrón:  lpkg --unlock → apt → lpkg --lock.
+# Copiamos ese patrón oficial (ref: github.com/Vanilla-OS/vm-image/recipe.yml).
 #
 # Build (en el Laboratorio):
 #   ./vib-amd64 build vib/recipe.yml          # → genera ./Containerfile
 #   sudo podman build -t hidralisk-os:vib -f Containerfile .
-#
-# Solo módulos `shell` (apt-get directo) para no depender de plugins.
 
 vibversion: 1.0.7
-name: Hidralisk OS (spike Vib)
+name: Hidralisk OS
 id: hidralisk-os
 
 stages:
   - id: build
-    base: ghcr.io/vanilla-os/core:latest
+    base: ghcr.io/vanilla-os/desktop:main
     addincludes: false
-    singlelayer: false
+    singlelayer: true
     labels:
       maintainer: HIDRA / hidr4lisk
-      org.hidralisk.spike: "3"
+      org.hidralisk.spike: "4b"
     args:
       DEBIAN_FRONTEND: noninteractive
     runs:
       commands:
         - echo 'APT::Install-Recommends "0";' > /etc/apt/apt.conf.d/01norecommends
     modules:
-      - name: paquetes-e-identidad
+      - name: hidralisk
         type: shell
         commands:
-          # En la base `core` la capa de paquetes NO está trabada → apt funciona directo
-          # (lpkg --unlock/--lock solo hace falta en la imagen `desktop`).
+          # base `desktop` = capa de paquetes TRABADA → destrabar para apt, retrabar al final
+          - lpkg --unlock
           - apt-get update
-          - apt-get install -y --no-install-recommends openssh-server ufw htop ca-certificates
+          - apt-get install -y --no-install-recommends openssh-server ufw htop ca-certificates qemu-guest-agent spice-vdagent
           - printf 'NAME="Hidralisk OS"\nID=hidralisk-os\nVARIANT="spike-vib"\n' > /etc/hidralisk-os-release
+          - systemctl enable ssh
           - apt-get autoremove -y
           - apt-get clean
+          - lpkg --lock
