@@ -15,6 +15,8 @@ cp <este-repo>/iso/hooks/*.chroot etc/config/hooks/live/
 chmod +x etc/config/hooks/live/*.chroot
 # menú GRUB de la ISO (rebrand)
 cp <este-repo>/iso/bootloaders/grub-pc/grub.cfg etc/config/bootloaders/grub-pc/grub.cfg
+# overlay de assets (ícono "flower" del instalador -> dragón Hidralisk)
+cp -r <este-repo>/iso/includes.chroot/. etc/config/includes.chroot/
 docker run --privileged -i -v /proc:/proc -v ${PWD}:/working_dir -w /working_dir \
   ghcr.io/vanilla-os/pico:main /bin/bash -s etc/terraform.conf < build.sh
 # → builds/amd64/VanillaOS-2-stable.YYYYMMDD.iso  (instala Hidralisk OS directo)
