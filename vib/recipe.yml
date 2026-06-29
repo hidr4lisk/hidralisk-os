@@ -45,6 +45,15 @@ stages:
           # Eso es frágil en VM (distrobox+podman rootless+--init) y NO es core de Hidralisk OS).
           # Quitando el autostart de /etc/skel, ningún usuario nuevo lo corre → login directo al escritorio.
           - rm -f /etc/skel/.config/autostart/org.vanillaos.FirstSetup.autostart.desktop
+          # Spike-5 branding: logo Hidralisk en GDM (logos de desktop-base) y en el boot
+          # (watermark de Plymouth). Variante BLANCA: el trazo negro original sería invisible
+          # sobre los fondos oscuros de GDM/Plymouth. Assets en vib/sources/hidralisk/branding/.
+          - cp /sources/hidralisk/branding/vanilla-logos/*.png /usr/share/desktop-base/vanilla-logos/
+          - cp /sources/hidralisk/branding/logo-white.svg /usr/share/desktop-base/vanilla-logos/logo.svg
+          - cp /sources/hidralisk/branding/logo-white.svg /usr/share/desktop-base/vanilla-logos/logo-text.svg
+          - cp /sources/hidralisk/branding/logo-white.svg /usr/share/desktop-base/vanilla-logos/logo-text-version.svg
+          - cp /sources/hidralisk/branding/watermark.png /usr/share/plymouth/themes/vanilla-bgrt/watermark.png
+          - update-initramfs -u
           - systemctl enable ssh
           - apt-get autoremove -y
           - apt-get clean
