@@ -32,11 +32,10 @@ stages:
       - name: paquetes-e-identidad
         type: shell
         commands:
-          # lpkg --unlock = destraba la capa de paquetes de Vanilla para poder usar apt en build
-          - lpkg --unlock
+          # En la base `core` la capa de paquetes NO está trabada → apt funciona directo
+          # (lpkg --unlock/--lock solo hace falta en la imagen `desktop`).
           - apt-get update
           - apt-get install -y --no-install-recommends openssh-server ufw htop ca-certificates
           - printf 'NAME="Hidralisk OS"\nID=hidralisk-os\nVARIANT="spike-vib"\n' > /etc/hidralisk-os-release
           - apt-get autoremove -y
           - apt-get clean
-          - lpkg --lock
