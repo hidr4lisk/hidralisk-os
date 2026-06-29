@@ -27,6 +27,12 @@ Un **whitepaper + esqueleto de build de buena calidad**, NO una distro.
 
 ### 2.1 NO reinventar lo que ya está inventado ⚠️ (prioridad)
 
+> **→ RESUELTO en `docs/adr/ADR-001-base-tecnologica.md`** (propuesta, espera OK de fede,
+> 2026-06-29): adoptar **Debian + bootc + composefs** (no construir init/pkg-mgr/integridad de
+> cero); el diferenciador sube al stack (seguridad por defecto + integración HIDRA + capa de UX).
+> Vanilla OS/ABRoot ya probó el Debian-inmutable. El roadmap de 12 semanas de `ACTION_PLAN.md`
+> queda obsoleto. La tabla de abajo es el insumo que llevó a esa decisión.
+
 Buena parte del diseño re-crea estándares maduros. Antes de escribir una línea más del
 orquestador/init propios, mapear cada pieza contra lo que ya existe y decidir
 **construir-encima vs. construir-de-cero**:
