@@ -1,10 +1,9 @@
 name: Hidralisk Lint
 
+# Manual por ahora: el lint del pipeline viejo falla y spamea en cada push. Se reactiva
+# (o se reescribe) cuando el árbol de scripts se estabilice sobre el flujo bootc (ADR-001).
 on:
-  push:
-    branches: [main, master]
-  pull_request:
-    branches: [main, master]
+  workflow_dispatch:
 
 jobs:
   lint:

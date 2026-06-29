@@ -1,11 +1,9 @@
 name: Hidralisk Build Pipeline
 
+# ⚠️ OBSOLETO (ver docs/adr/ADR-001): pipeline del diseño from-scratch
+# (mmdebstrap→ostree→ISO, runner self-hosted inexistente). Se reescribe para el flujo bootc.
+# SOLO manual por ahora — así no dispara jobs fallidos (ni mails) en cada push.
 on:
-  push:
-    branches: [main, master]
-    tags: ['v*', 'stable/*']
-  pull_request:
-    branches: [main, master]
   workflow_dispatch:
     inputs:
       version:
