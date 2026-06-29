@@ -1,4 +1,4 @@
-name: SpellOS Lint
+name: Hidralisk Lint
 
 on:
   push:

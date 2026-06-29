@@ -1,4 +1,4 @@
-# Hardening — SpellOS
+# Hardening — Hidralisk
 
 **Autor:** ZeroCool (Red Team)
 **Fecha:** 2026-06-27
@@ -9,7 +9,7 @@
 ## 1. Kernel Hardening
 
 ```bash
-# /etc/sysctl.d/99-magic-hardening.conf
+# /etc/sysctl.d/99-hidra-hardening.conf
 
 # --- Protección de memoria ---
 kernel.randomize_va_space=2                    # ASLR completo (stack, heap, mmap, VDSO)
@@ -55,7 +55,7 @@ fs.protected_regular=2
 ### Blacklist de módulos del kernel
 
 ```bash
-# /etc/modprobe.d/magic-blacklist.conf
+# /etc/modprobe.d/hidra-blacklist.conf
 
 # Módulos de debugging/acceso directo — NUNCA en producción
 blacklist cramfs
@@ -80,24 +80,24 @@ blacklist vsock                               # VM socket transport
 
 ## 2. AppArmor — Profiles estrictos
 
-### Profile para `magic-init`
+### Profile para `hidra-init`
 
 ```bash
-# /etc/apparmor.d/usr.sbin.magic-init
+# /etc/apparmor.d/usr.sbin.hidra-init
 
 #include <tunables/global>
 
-/usr/sbin/magic-init {
+/usr/sbin/hidra-init {
   #include <abstractions/base>
 
   # Lectura de archivos del sistema — solo paths específicos
-  /boot/.magic/registry.asc       r,
-  /etc/magic/keys/*.pub            r,
-  /etc/magic/magic.yaml           r,
-  /var/log/magic/audit.log        w,
+  /boot/.hidra/registry.asc       r,
+  /etc/hidra/keys/*.pub            r,
+  /etc/hidra/hidra.yaml           r,
+  /var/log/hidra/audit.log        w,
 
   # Escritura SOLO al audit log
-  /var/log/magic/audit.log        w,
+  /var/log/hidra/audit.log        w,
 
   # No acceso a /etc, /var/lib, o cualquier otra cosa
   deny /etc/**                    w,
@@ -112,14 +112,14 @@ blacklist vsock                               # VM socket transport
 }
 ```
 
-### Profile para `magic-apt`
+### Profile para `hidra-apt`
 
 ```bash
-# /etc/apparmor.d/usr.bin.magic-apt
+# /etc/apparmor.d/usr.bin.hidra-apt
 
 #include <tunables/global>
 
-/usr/bin/magic-apt {
+/usr/bin/hidra-apt {
   #include <abstractions/base>
   #include <abstractions/apt>
 
@@ -133,12 +133,12 @@ blacklist vsock                               # VM socket transport
   /var/lib/ostree/**             rw,
 
   # Claves de firma — SOLO lectura
-  /etc/magic/keys/verify.pub     r,
-  deny /etc/magic/keys/*.pub     w,
+  /etc/hidra/keys/verify.pub     r,
+  deny /etc/hidra/keys/*.pub     w,
 
   # Registro — append-only
-  /var/log/magic/audit.log       w,
-  /var/log/magic/transactions.log w,
+  /var/log/hidra/audit.log       w,
+  /var/log/hidra/transactions.log w,
 
   # Snapshot Btrfs
   /usr/sbin/btrfs                mr,
@@ -152,19 +152,19 @@ blacklist vsock                               # VM socket transport
 }
 ```
 
-### Profile para `grimoire`
+### Profile para `overmind`
 
 ```bash
-# /etc/apparmor.d/usr.bin.grimoire
+# /etc/apparmor.d/usr.bin.overmind
 
 #include <tunables/global>
 
-/usr/bin/grimoire {
+/usr/bin/overmind {
   #include <abstractions/base>
 
-  # Lectura de magic.yaml — ÚNICO archivo de configuración
-  /etc/magic/magic.yaml          r,
-  /etc/magic/magic.yaml.d/**     r,
+  # Lectura de hidra.yaml — ÚNICO archivo de configuración
+  /etc/hidra/hidra.yaml          r,
+  /etc/hidra/hidra.yaml.d/**     r,
 
   # Escritura a /etc SOLO vía overlay (nunca directo)
   /run/overlay/**                rw,
@@ -173,7 +173,7 @@ blacklist vsock                               # VM socket transport
   /usr/bin/systemctl             Px -> /usr/bin/systemctl,
 
   # Log
-  /var/log/magic/audit.log       w,
+  /var/log/hidra/audit.log       w,
 
   # Denegar escritura directa a /etc
   deny /etc/**                   w,
@@ -195,22 +195,22 @@ dm-egrity proporciona verificación de integridad a nivel de bloque. Cada bloque
 
 ```bash
 # Configuración de dm-verity para la capa base
-# Se aplica en stage-1 de magic-init, ANTES de montar el rootfs
+# Se aplica en stage-1 de hidra-init, ANTES de montar el rootfs
 
 # 1. Generar hash tree durante el build
-veritysetup format /dev/mapper/magic-base /dev/mapper/magic-base-hash
+veritysetup format /dev/mapper/hidra-base /dev/mapper/hidra-base-hash
 
 # 2. Montar con verificación
 mount -o ro,verity /dev/dm-0 /mnt/root
 
 # 3. Configurar en /etc/fstab para boot futuro
-# /dev/mapper/magic-base    /    ext4    ro,verity    0 1
+# /dev/mapper/hidra-base    /    ext4    ro,verity    0 1
 ```
 
-### Integración con magic-init
+### Integración con hidra-init
 
 ```bash
-# En stage-1 de magic-init:
+# En stage-1 de hidra-init:
 # 1. Verificar hash tree del rootfs
 # 2. Si falla → NO montar rootfs, ir a recovery
 # 3. Si pasa → montar con dm-verity habilitado
@@ -280,14 +280,14 @@ bwrap \
   --unshare-all \
   --new-session \
   --hostname sandbox-$(id -u) \
-  --args-file /etc/magic/bwrap-args.conf \
+  --args-file /etc/hidra/bwrap-args.conf \
   /bin/bash
 ```
 
 ### Restricciones del sandbox
 
 ```bash
-# /etc/magic/bwrap-args.conf
+# /etc/hidra/bwrap-args.conf
 
 # No acceso a /dev excepto dispositivos específicos
 --dev /dev/null
@@ -300,8 +300,8 @@ bwrap \
 # No acceso a /boot
 --bind /dev/null /boot
 
-# No acceso a /etc/magic (configuración del sistema)
---bind /dev/null /etc/magic
+# No acceso a /etc/hidra (configuración del sistema)
+--bind /dev/null /etc/hidra
 
 # No acceso a /var/log (logs del sistema)
 --bind /dev/null /var/log
@@ -330,18 +330,18 @@ kernel.unprivileged_userns_clone=0
 ## 6. Protección del Audit Log
 
 ```bash
-# /etc/apparmor.d/var.log.magic.audit.log
+# /etc/apparmor.d/var.log.hidra.audit.log
 
 #include <tunables/global>
 
-/var/log/magic/audit.log {
+/var/log/hidra/audit.log {
   # Solo append — nunca truncar ni sobreescribir
   append-only,
 
-  # Solo magic-init y magic-apt pueden escribir
-  owner /usr/sbin/magic-init w,
-  owner /usr/bin/magic-apt w,
-  owner /usr/bin/grimoire w,
+  # Solo hidra-init y hidra-apt pueden escribir
+  owner /usr/sbin/hidra-init w,
+  owner /usr/bin/hidra-apt w,
+  owner /usr/bin/overmind w,
 
   # Nadie más puede leer o modificar
   deny user r,
@@ -353,15 +353,15 @@ kernel.unprivileged_userns_clone=0
 ### Complemento: Log shipping
 
 ```bash
-# /etc/magic/log-shipper.conf
+# /etc/hidra/log-shipper.conf
 # Envía cada entrada de audit log a un SIEM remoto en tiempo real
 
 [audit-shipper]
 type = file
-path = /var/log/magic/audit.log
+path = /var/log/hidra/audit.log
 format = json
 endpoint = https://siem.example.com/ingest
-auth_token = ${MAGIC_SSIEM_TOKEN}
+auth_token = ${HIDRA_SSIEM_TOKEN}
 batch_size = 1
 flush_interval = 1s
 ```
@@ -375,8 +375,8 @@ flush_interval = 1s
 
 # Verificar que Secure Boot está activo antes de permitir boot
 if ! mokutil --sb-state | grep -q "SecureBoot enabled"; then
-  echo "⚠️  SPELLOS: SecureBoot DESHABILITADO"
-  echo "   SpellOS requiere Secure Boot para operar correctamente."
+  echo "⚠️  HIDRALISK: SecureBoot DESHABILITADO"
+  echo "   Hidralisk requiere Secure Boot para operar correctamente."
   echo "   El sistema arrancará en modo DEGRADED (sin verificación de integridad)."
   echo ""
   echo "   Para habilitar Secure Boot:"
@@ -399,7 +399,7 @@ fi
 
 flush ruleset
 
-table inet magic-filter {
+table inet hidra-filter {
   chain input {
     type filter hook input priority 0; policy drop;
 
@@ -420,7 +420,7 @@ table inet magic-filter {
     tcp dport 53 accept
 
     # Log y drop el resto
-    log prefix "[MAGIC-DROP] " drop
+    log prefix "[HIDRA-DROP] " drop
   }
 
   chain forward {
@@ -464,7 +464,7 @@ table inet magic-filter {
 | Audit log | APPEND-ONLY | Evidencia forense |
 | Snapshots | LÍMITE 10 | Prevención de DoS |
 | Rollback deprecated | REQUIERE --force | No reversión accidental de parches |
-| magic.yaml | FIRMA REQUERIDA | No manipulación de configuración |
+| hidra.yaml | FIRMA REQUERIDA | No manipulación de configuración |
 | Registro de capas | TPM-bound | No reemplazo sin hardware token |
 | Build pipeline | REPRODUCIBLE | Verificabilidad independiente |
 
@@ -507,7 +507,7 @@ GRUB_CMDLINE_LINUX="\
 
 ## 12. Resumen de Postura
 
-SpellOS por defecto debe ser:
+Hidralisk por defecto debe ser:
 
 1. **DENY-BY-DEFAULT** en red, filesystem, y capabilities
 2. **VERIFIED** en boot, capas, y configuración (dm-verity + firma + TPM)

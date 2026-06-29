@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # stage3-ostree.sh — Crea commit ostree de la capa base y firma el registro
 #
-# P1.2 del roadmap: toma el rootfs con capa SpellOS (stage2 output),
+# P1.2 del roadmap: toma el rootfs con capa Hidralisk (stage2 output),
 # hace un ostree commit, lo firma con GPG, y genera registry.asc
 # con placeholder de TPM PCR binding.
 #
 # Input:
-#   $1 — tarball de la capa (default: $OUTDIR/magic-$VERSION.tar)
+#   $1 — tarball de la capa (default: $OUTDIR/hidra-$VERSION.tar)
 #
 # Output:
 #   $OSTREE_REPO/ — repositorio ostree local
@@ -21,14 +21,14 @@ REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 OUTDIR="${OUTDIR:-$REPO_DIR/output}"
 VERSION="${VERSION:-snapshot-$(date +%Y%m%d)}"
-GPG_KEY="${GPG_KEY:-build@spellos.dev}"
+GPG_KEY="${GPG_KEY:-build@hidralisk.dev}"
 OSTREE_REPO="${OSTREE_REPO:-$OUTDIR/ostree-repo}"
 
-MAGIC_TAR="${1:-$OUTDIR/magic-$VERSION.tar}"
+HIDRA_TAR="${1:-$OUTDIR/hidra-$VERSION.tar}"
 
-if [ ! -f "$MAGIC_TAR" ]; then
-    echo "[FATAL] No se encuentra capa: $MAGIC_TAR"
-    echo "        Ejecutar stage1-base.sh + stage2-magic.sh primero."
+if [ ! -f "$HIDRA_TAR" ]; then
+    echo "[FATAL] No se encuentra capa: $HIDRA_TAR"
+    echo "        Ejecutar stage1-base.sh + stage2-hidra.sh primero."
     exit 1
 fi
 
@@ -43,11 +43,11 @@ for cmd in ostree gpg sha256sum; do
 done
 
 # --- Directorio temporal para extraer la capa ---
-LAYER_DIR=$(mktemp -d /tmp/spellos-layer-XXXXXX)
+LAYER_DIR=$(mktemp -d /tmp/hidralisk-layer-XXXXXX)
 trap 'rm -rf "$LAYER_DIR"' EXIT
 
-echo "[STAGE-3] Extrayendo $MAGIC_TAR..."
-tar -xpf "$MAGIC_TAR" -C "$LAYER_DIR"
+echo "[STAGE-3] Extrayendo $HIDRA_TAR..."
+tar -xpf "$HIDRA_TAR" -C "$LAYER_DIR"
 
 # --- Inicializar repositorio ostree si no existe ---
 if [ ! -d "$OSTREE_REPO" ]; then
@@ -59,7 +59,7 @@ fi
 echo "[STAGE-3] Generando manifest de la capa..."
 HASH_MANIFEST="$OUTDIR/manifest-$VERSION.txt"
 {
-    echo "# SpellOS Layer Manifest — $VERSION"
+    echo "# Hidralisk Layer Manifest — $VERSION"
     echo "# Generado: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
     echo ""
     echo "## Filesystem hashes (SHA-256)"
@@ -73,11 +73,11 @@ echo "[STAGE-3] Manifest generado: $(wc -l < "$HASH_MANIFEST") entradas"
 
 # --- Commit ostree ---
 echo "[STAGE-3] Commit ostree..."
-BRANCH_NAME="spellos/$VERSION/base"
+BRANCH_NAME="hidralisk/$VERSION/base"
 COMMIT_HASH=$(ostree commit \
     --repo="$OSTREE_REPO" \
     --branch="$BRANCH_NAME" \
-    --subject="SpellOS base layer $VERSION" \
+    --subject="Hidralisk base layer $VERSION" \
     --body="Build snapshot generado por stage3-ostree.sh" \
     --gpg-sign="$GPG_KEY" \
     --tree=dir="$LAYER_DIR" 2>&1 | tail -1)
@@ -100,7 +100,7 @@ sha256sum "$LAYER_TAR" > "$LAYER_TAR.sha256"
 
 # --- Generar registry.asc (Registro firmado de capas + TPM PCR binding) ---
 #
-# registry.asc es el archivo que magic-init stage-1 verifica en boot.
+# registry.asc es el archivo que hidra-init stage-1 verifica en boot.
 # Contiene:
 #   - Hash de la capa base (este commit)
 #   - Firma GPG del registro
@@ -117,9 +117,9 @@ LAYER_DIGEST=$(sha256sum "$LAYER_TAR" | cut -d' ' -f1)
 MANIFEST_DIGEST=$(sha256sum "$HASH_MANIFEST" | cut -d' ' -f1)
 
 {
-    echo "-----BEGIN SPELLOS REGISTRY-----"
+    echo "-----BEGIN HIDRALISK REGISTRY-----"
     echo ""
-    echo "Registry: SpellOS Capas Firmadas"
+    echo "Registry: Hidralisk Capas Firmadas"
     echo "Version: $VERSION"
     echo "Generado: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
     echo "Branch: $BRANCH_NAME"
@@ -137,12 +137,12 @@ MANIFEST_DIGEST=$(sha256sum "$HASH_MANIFEST" | cut -d' ' -f1)
     echo "PCR-Policy: NoExecuteWithoutMatch"
     echo "TPM-Notes: En producción, este valor se extiende con tpm2_pcrextend"
     echo "            usando el hash del registry.asc firmado. El stage-1 de"
-    echo "            magic-init lee los PCRs actuales y solo permite boot"
+    echo "            hidra-init lee los PCRs actuales y solo permite boot"
     echo "            si coinciden con este registro."
     echo ""
     echo "--- Firmas Permitidas ---"
     echo "GPG-Key: $GPG_KEY"
-    echo "Verify-Path: /etc/magic/keys/verify.pub"
+    echo "Verify-Path: /etc/hidra/keys/verify.pub"
     echo ""
 } > "$REGISTRY"
 

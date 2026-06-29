@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# test-vm.sh — Lanza SpellOS ISO en QEMU
+# test-vm.sh — Lanza Hidralisk ISO en QEMU
 #
 # Uso: ./scripts/test-vm.sh [ruta-iso]
-#   Si no se especifica ruta, busca output/SpellOS-*.iso
+#   Si no se especifica ruta, busca output/Hidralisk-*.iso
 #
 # Variables de entorno:
 #   QEMU_MEM   — RAM en MB (default: 4096)
@@ -24,12 +24,12 @@ QEMU_KVM="${QEMU_KVM:-auto}"
 if [ $# -ge 1 ] && [ -n "$1" ]; then
     ISO="$1"
 else
-    ISO=$(ls -t "$REPO_DIR/output/SpellOS-"*.iso 2>/dev/null | head -1)
+    ISO=$(ls -t "$REPO_DIR/output/Hidralisk-"*.iso 2>/dev/null | head -1)
 fi
 
 if [ -z "$ISO" ]; then
-    echo "[FATAL] No se encontró ISO de SpellOS." >&2
-    echo "        Especificar ruta: $0 /ruta/a/SpellOS.iso" >&2
+    echo "[FATAL] No se encontró ISO de Hidralisk." >&2
+    echo "        Especificar ruta: $0 /ruta/a/Hidralisk.iso" >&2
     echo "        O generar con:    make build" >&2
     exit 1
 fi
@@ -49,7 +49,7 @@ fi
 
 ISO_SIZE=$(du -h "$ISO" | cut -f1)
 echo "╔══════════════════════════════════════════════════════════╗"
-echo "║              SpellOS — QEMU Test VM                    ║"
+echo "║              Hidralisk — QEMU Test VM                    ║"
 echo "╚══════════════════════════════════════════════════════════╝"
 echo ""
 echo "ISO:      $ISO"
@@ -106,7 +106,7 @@ fi
 
 echo "Comando: ${QEMU_CMD[*]}"
 echo ""
-echo "SpellOS corriendo en QEMU en $QEMU_VNC VNC"
+echo "Hidralisk corriendo en QEMU en $QEMU_VNC VNC"
 echo ""
 echo "Conectar: vncviewer localhost${QEMU_VNC#:}"
 echo "O:        gvncviewer localhost:${QEMU_VNC#:}"

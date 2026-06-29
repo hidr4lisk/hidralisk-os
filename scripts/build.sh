@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# build.sh — Orquestador del pipeline SpellOS
+# build.sh — Orquestador del pipeline Hidralisk
 #
 # Ejecuta stage1→stage5 secuencialmente con:
 #   (a) validación de prerequisitos
@@ -12,7 +12,7 @@
 # Variables de entorno (o defaults):
 #   OUTDIR    — directorio de salida (default: ./output)
 #   VERSION   — versión del build (default: snapshot-$(date +%Y%m%d))
-#   GPG_KEY   — ID de clave GPG (default: build@spellos.dev)
+#   GPG_KEY   — ID de clave GPG (default: build@hidralisk.dev)
 
 set -euo pipefail
 
@@ -21,7 +21,7 @@ REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 OUTDIR="${OUTDIR:-$REPO_DIR/output}"
 VERSION="${VERSION:-snapshot-$(date +%Y%m%d)}"
-GPG_KEY="${GPG_KEY:-build@spellos.dev}"
+GPG_KEY="${GPG_KEY:-build@hidralisk.dev}"
 
 # --- Colores ---
 RED='\033[0;31m'
@@ -55,7 +55,7 @@ trap cleanup EXIT
 
 # --- Banner ---
 echo "╔══════════════════════════════════════════════════════════╗"
-echo "║          SpellOS Build Pipeline — build.sh              ║"
+echo "║          Hidralisk Build Pipeline — build.sh              ║"
 echo "╚══════════════════════════════════════════════════════════╝"
 echo ""
 echo "Directorio de trabajo: $REPO_DIR"
@@ -176,19 +176,19 @@ fi
 echo ""
 
 # ═══════════════════════════════════════════════════════════
-# STAGE 2: Capa SpellOS
+# STAGE 2: Capa Hidralisk
 # ═══════════════════════════════════════════════════════════
-echo "═══ Stage 2: Inyectando capa SpellOS ═══"
+echo "═══ Stage 2: Inyectando capa Hidralisk ═══"
 
-rm -f "$OUTDIR/magic-$VERSION"* 2>/dev/null || true
+rm -f "$OUTDIR/hidra-$VERSION"* 2>/dev/null || true
 
-if bash "$SCRIPT_DIR/stage2-magic.sh"; then
-    MAGIC_TAR="$OUTDIR/magic-$VERSION.tar"
-    MAGIC_SIG="$OUTDIR/magic-$VERSION.tar.sig"
-    MAGIC_HASH="$OUTDIR/magic-$VERSION.sha256"
+if bash "$SCRIPT_DIR/stage2-hidra.sh"; then
+    HIDRA_TAR="$OUTDIR/hidra-$VERSION.tar"
+    HIDRA_SIG="$OUTDIR/hidra-$VERSION.tar.sig"
+    HIDRA_HASH="$OUTDIR/hidra-$VERSION.sha256"
 
     ARTIFACTS_OK=true
-    for f in "$MAGIC_TAR" "$MAGIC_HASH" "$MAGIC_SIG"; do
+    for f in "$HIDRA_TAR" "$HIDRA_HASH" "$HIDRA_SIG"; do
         if [ ! -f "$f" ]; then
             fail "Stage 2 no produjo: $f"
             ARTIFACTS_OK=false
@@ -196,29 +196,29 @@ if bash "$SCRIPT_DIR/stage2-magic.sh"; then
     done
 
     if $ARTIFACTS_OK; then
-        EXPECTED=$(cut -d' ' -f1 < "$MAGIC_HASH")
-        ACTUAL=$(sha256sum "$MAGIC_TAR" | cut -d' ' -f1)
+        EXPECTED=$(cut -d' ' -f1 < "$HIDRA_HASH")
+        ACTUAL=$(sha256sum "$HIDRA_TAR" | cut -d' ' -f1)
         if [ "$EXPECTED" = "$ACTUAL" ]; then
-            if gpg --verify "$MAGIC_SIG" "$MAGIC_TAR" 2>/dev/null; then
+            if gpg --verify "$HIDRA_SIG" "$HIDRA_TAR" 2>/dev/null; then
                 pass "Stage 2 completado — checksum + firma GPG OK"
-                stage_pass "Stage 2: SpellOS layer"
+                stage_pass "Stage 2: Hidralisk layer"
             else
                 fail "Stage 2: firma GPG inválida"
-                stage_fail "Stage 2: SpellOS layer"
+                stage_fail "Stage 2: Hidralisk layer"
                 exit 1
             fi
         else
             fail "Stage 2: checksum mismatch"
-            stage_fail "Stage 2: SpellOS layer"
+            stage_fail "Stage 2: Hidralisk layer"
             exit 1
         fi
     else
-        stage_fail "Stage 2: SpellOS layer"
+        stage_fail "Stage 2: Hidralisk layer"
         exit 1
     fi
 else
     fail "Stage 2 falló"
-    stage_fail "Stage 2: SpellOS layer"
+    stage_fail "Stage 2: Hidralisk layer"
     exit 1
 fi
 
@@ -226,13 +226,13 @@ fi
 echo ""
 echo "═══ Gate: Schema validation ═══"
 
-MAGIC_YAML="$OUTDIR/magic-yaml-check"
-SCHEMA_FILE="$REPO_DIR/magic-schema.json"
+HIDRA_YAML="$OUTDIR/hidra-yaml-check"
+SCHEMA_FILE="$REPO_DIR/hidra-schema.json"
 
-# Extraer magic.yaml del tarball para validarlo
-if [ -f "$MAGIC_TAR" ]; then
-    TMP_YAML=$(mktemp /tmp/spellos-schema-XXXXXX.yaml)
-    tar -xOf "$MAGIC_TAR" etc/magic/magic.yaml > "$TMP_YAML" 2>/dev/null || true
+# Extraer hidra.yaml del tarball para validarlo
+if [ -f "$HIDRA_TAR" ]; then
+    TMP_YAML=$(mktemp /tmp/hidralisk-schema-XXXXXX.yaml)
+    tar -xOf "$HIDRA_TAR" etc/hidra/hidra.yaml > "$TMP_YAML" 2>/dev/null || true
 
     if [ -s "$TMP_YAML" ]; then
         if [ -f "$SCHEMA_FILE" ] && command -v python3 &>/dev/null; then
@@ -254,9 +254,9 @@ except Exception as e:
             rm -f "$TMP_YAML"
 
             if [ "$SCHEMA_OK" = "1" ]; then
-                pass "magic.yaml cumple magic-schema.json"
+                pass "hidra.yaml cumple hidra-schema.json"
             else
-                fail "magic.yaml NO cumple magic-schema.json — pipeline bloqueado"
+                fail "hidra.yaml NO cumple hidra-schema.json — pipeline bloqueado"
                 stage_fail "Gate: schema validation"
                 exit 1
             fi
@@ -266,7 +266,7 @@ except Exception as e:
         fi
     else
         rm -f "$TMP_YAML"
-        warn "No se pudo extraer magic.yaml del tarball"
+        warn "No se pudo extraer hidra.yaml del tarball"
     fi
 fi
 echo ""
@@ -325,11 +325,11 @@ echo ""
 # ═══════════════════════════════════════════════════════════
 echo "═══ Stage 4: Generando ISO híbrida ═══"
 
-rm -f "$OUTDIR/SpellOS-$VERSION.iso"* 2>/dev/null || true
+rm -f "$OUTDIR/Hidralisk-$VERSION.iso"* 2>/dev/null || true
 
 if bash "$SCRIPT_DIR/stage4-iso.sh"; then
-    ISO_FILE="$OUTDIR/SpellOS-$VERSION.iso"
-    ISO_HASH="$OUTDIR/SpellOS-$VERSION.iso.sha256"
+    ISO_FILE="$OUTDIR/Hidralisk-$VERSION.iso"
+    ISO_HASH="$OUTDIR/Hidralisk-$VERSION.iso.sha256"
 
     ARTIFACTS_OK=true
     for f in "$ISO_FILE" "$ISO_HASH"; do
@@ -407,7 +407,7 @@ else
     echo "╚══════════════════════════════════════════════════════════╝"
     echo ""
     echo "Artefactos en $OUTDIR:"
-    ls -lh "$OUTDIR/base-$VERSION"* "$OUTDIR/magic-$VERSION"* "$OUTDIR/layer-$VERSION"* "$OUTDIR/SpellOS-$VERSION.iso" "$OUTDIR/registry.asc" "$OUTDIR/attestation.intoto.jsonl" 2>/dev/null || true
+    ls -lh "$OUTDIR/base-$VERSION"* "$OUTDIR/hidra-$VERSION"* "$OUTDIR/layer-$VERSION"* "$OUTDIR/Hidralisk-$VERSION.iso" "$OUTDIR/registry.asc" "$OUTDIR/attestation.intoto.jsonl" 2>/dev/null || true
     echo ""
     echo "Siguiente paso: firmar la ISO con cosign/HSM"
     exit 0

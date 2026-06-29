@@ -12,7 +12,7 @@
 # Variables de entorno (o defaults):
 #   OUTDIR    — directorio de salida (default: ./output)
 #   VERSION   — versión del build (default: snapshot-$(date +%Y%m%d))
-#   GPG_KEY   — ID de clave GPG para firmar (default: build@spellos.dev)
+#   GPG_KEY   — ID de clave GPG para firmar (default: build@hidralisk.dev)
 #   MIRROR    — mirror Debian (default: http://deb.debian.org/debian)
 
 set -euo pipefail
@@ -22,7 +22,7 @@ REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 OUTDIR="${OUTDIR:-$REPO_DIR/output}"
 VERSION="${VERSION:-snapshot-$(date +%Y%m%d)}"
-GPG_KEY="${GPG_KEY:-build@spellos.dev}"
+GPG_KEY="${GPG_KEY:-build@hidralisk.dev}"
 MIRROR="${MIRROR:-http://deb.debian.org/debian}"
 
 mkdir -p "$OUTDIR"

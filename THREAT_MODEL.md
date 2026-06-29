@@ -1,4 +1,4 @@
-# Threat Model — SpellOS
+# Threat Model — Hidralisk
 
 **Autor:** ZeroCool (Red Team)
 **Fecha:** 2026-06-27
@@ -14,7 +14,7 @@ Analizo la arquitectura desde el modelo STRIDE + vectores específicos de sistem
 
 ## V-01: Bootkit — Compromiso de `registry.asc` en `/boot`
 
-**Descripción:** El stage-1 de `magic-init` verifica integridad de la capa base contra `/boot/.magic/registry.asc`. Si un atacante con acceso físico (o remoto vía otro vector) reemplaza este archivo, puede:
+**Descripción:** El stage-1 de `hidra-init` verifica integridad de la capa base contra `/boot/.hidra/registry.asc`. Si un atacante con acceso físico (o remoto vía otro vector) reemplaza este archivo, puede:
 - Inyectar hashes que coincidan con una capa maliciosa
 - Desactivar la verificación completa del sistema
 
@@ -44,17 +44,17 @@ Analizo la arquitectura desde el modelo STRIDE + vectores específicos de sistem
 
 **Mitigación propuesta:**
 - Secure Boot MANDATORIO en producción. La ISO debe rechazar instalar si Secure Boot está deshabilitado.
-- `sbctl` o `sbupdate` para mantener las firmas UEFI bajo control de SpellOS, no del usuario.
+- `sbctl` o `sbupdate` para mantener las firmas UEFI bajo control de Hidralisk, no del usuario.
 - Alerta en stage-1 si Secure Boot no está activo (log + notificación al usuario).
 
 ---
 
-## V-03: Supply Chain — `magic-apt` envuelve apt puro
+## V-03: Supply Chain — `hidra-apt` envuelve apt puro
 
-**Descripción:** `magic-apt` es un wrapper sobre apt. Esto significa:
+**Descripción:** `hidra-apt` es un wrapper sobre apt. Esto significa:
 - TODOS los CVEs de apt aplican (dependencias, resolución de paquetes, repositorios)
 - La capa ostree que genera agrega superficie de ataque: si el proceso de creación de capa tiene un bug (path traversal, symlink following), se puede inyectar contenido malicioso en la capa
-- El repositorio local `/etc/magic/keys/` contiene la clave de firma. Si se compromete, todas las capas "firmadas" son trampa.
+- El repositorio local `/etc/hidra/keys/` contiene la clave de firma. Si se compromete, todas las capas "firmadas" son trampa.
 
 **Impacto:** ALTO. Compromiso de supply chain = cada actualización futura puede ser maliciosa.
 
@@ -63,7 +63,7 @@ Analizo la arquitectura desde el modelo STRIDE + vectores específicos de sistem
 **Mitigación propuesta:**
 - **Clave de firma offline:** La clave de firma de capas NUNCA debe estar en el disco del usuario. Generarla en build time, almacenarla en HSM o YubiKey.
 - **Reproducible builds:** Cada capa ostree debe ser verificable independentemente. Publicar diffs de build para auditoría.
-- **Pinning de repositorios:** `magic-apt` debe validar hash SHA256 de cada paquete descargado contra un manifest firmado. No confiar solo en GPG del mirror.
+- **Pinning de repositorios:** `hidra-apt` debe validar hash SHA256 de cada paquete descargado contra un manifest firmado. No confiar solo en GPG del mirror.
 - **Isolación del proceso de creación de capas:** Ejecutar `apt download` en un sandbox (bubblewrap o namespaces) con mínimo privilegio. El proceso de creación de capa NUNCA debe correr como root sobre el filesystem real.
 
 ---
@@ -80,7 +80,7 @@ Analizo la arquitectura desde el modelo STRIDE + vectores específicos de sistem
 **Feasibility:** MEDIA (requiere write a una capa que se monte sobre el sistema)
 
 **Mitigación propuesta:**
-- **Verificación de integridad POST-mount:** Después de montar overlays, `magic-init` debe verificar hashes de binarios críticos (systemd, login, kernel) contra el registro. Si hay discrepancia → rechazar boot.
+- **Verificación de integridad POST-mount:** Después de montar overlays, `hidra-init` debe verificar hashes de binarios críticos (systemd, login, kernel) contra el registro. Si hay discrepancia → rechazar boot.
 - **Allowlist de capas:** Solo las capas cuyo hash esté en `registry.asc` se permiten montar. Sin allowlist → no hay overlay.
 - **dm-verity** en la capa base: incluso si un overlay enmascara un archivo, dm-verity detecta la modificación a nivel de bloque del subvolumen Btrfs subyacente.
 
@@ -92,7 +92,7 @@ Analizo la arquitectura desde el modelo STRIDE + vectores específicos de sistem
 - Inyectar servicios systemd en `/etc/systemd/system/`
 - Modificar crontabs en `/etc/cron.*`
 - Plantar scripts en `/var/lib/` que se ejecuten en cada boot
-- Alterar `/etc/magic/magic.yaml` para que Grimoire aplique capas maliciosas
+- Alterar `/etc/hidra/hidra.yaml` para que Overmind aplique capas maliciosas
 
 **Impacto:** ALTO. Persistencia que sobrevive reinicios y rollback de capas del sistema.
 
@@ -100,15 +100,15 @@ Analizo la arquitectura desde el modelo STRIDE + vectores específicos de sistem
 
 **Mitigación propuesta:**
 - **Verificación de `/etc` y `/var` en boot:** Antes de que systemd arranque, verificar hashes de archivos críticos en estas áreas contra un manifest firmado.
-- **Grimoire como single source of truth:** Si `magic.yaml` es la definición del sistema, CUALQUIER cambio en `/etc` que no venga de Grimoire debe ser detectado y revertido.
+- **Overmind como single source of truth:** Si `hidra.yaml` es la definición del sistema, CUALQUIER cambio en `/etc` que no venga de Overmind debe ser detectado y revertido.
 - **AppArmor/SELinux estricto:** Restringir qué procesos pueden modificar archivos en `/etc/systemd/`, `/etc/cron.*`, y `/var/lib/`.
-- **Audit log inmutable:** `/var/log/magic/audit.log` debe ser write-only append. Si es atacable, el atacante borra evidencia.
+- **Audit log inmutable:** `/var/log/hidra/audit.log` debe ser write-only append. Si es atacable, el atacante borra evidencia.
 
 ---
 
 ## V-06: Weaponización de Rollback
 
-**Descripción:** `magic-rollback` permite volver a un commit ostree anterior. Un atacante puede:
+**Descripción:** `hidra-rollback` permite volver a un commit ostree anterior. Un atacante puede:
 - Revertir parches de seguridad aplicados en la última actualización
 - Forzar rollback a una versión con CVEs conocidos
 - Hacer rollback de cambios de configuración de seguridad
@@ -118,15 +118,15 @@ Analizo la arquitectura desde el modelo STRIDE + vectores específicos de sistem
 **Feasibility:** BAJA (requiere root + conocer el historial de commits)
 
 **Mitigación propuesta:**
-- **Rollback solo a versiones con soporte:** `magic-rollback --list` debe marcar versiones sin soporte de seguridad como "deprecated". Rollback a deprecated requiere flag explícito `--force-deprecated` + warning.
+- **Rollback solo a versiones con soporte:** `hidra-rollback --list` debe marcar versiones sin soporte de seguridad como "deprecated". Rollback a deprecated requiere flag explícito `--force-deprecated` + warning.
 - **Snapshot del manifest de seguridad antes de rollback:** Guardar el estado de parches conocidos. Si el rollback revierte un CVE crítico → alerta obligatoria.
 - **Rate limiting:** No permitir más de N rollbacks en un período (evitar abuso para análisis de diferencias).
 
 ---
 
-## V-07: YAML Injection en Grimoire
+## V-07: YAML Injection en Overmind
 
-**Descripción:** `magic.yaml` es el corazón declarativo. Un atacante que comprometa el repositorio del usuario puede:
+**Descripción:** `hidra.yaml` es el corazón declarativo. Un atacante que comprometa el repositorio del usuario puede:
 - Inyectar paquetes maliciosos en la sección `packages`
 - Modificar `dotfiles.source` para apuntar a un repo malicioso
 - Alterar `integrity.verify_boot: false` para desactivar verificación
@@ -137,9 +137,9 @@ Analizo la arquitectura desde el modelo STRIDE + vectores específicos de sistem
 **Feasibility:** MEDIA (requiere compromiso del repo git del usuario o MITM en dotfiles)
 
 **Mitigación propuesta:**
-- **Validación de esquema:** `grimoire apply` debe validar contra un JSON Schema estricto. Campos como `integrity.verify_boot` no deben ser modificables por el usuario.
+- **Validación de esquema:** `overmind apply` debe validar contra un JSON Schema estricto. Campos como `integrity.verify_boot` no deben ser modificables por el usuario.
 - **Allowlist de campos modificables:** El usuario puede declarar paquetes y servicios, pero NO puede desactivar verificación de integridad, firmado, o audit log.
-- **Firma de `magic.yaml`:** El archivo debe ser firmado con la clave del administrador. `grimoire apply` rechaza archivos no firmados o con firma inválida.
+- **Firma de `hidra.yaml`:** El archivo debe ser firmado con la clave del administrador. `overmind apply` rechaza archivos no firmados o con firma inválida.
 - **Subresource Integrity (SRI) para dotfiles:** Si `dotfiles.source` es remoto, verificar hash del contenido descargado.
 
 ---
@@ -165,19 +165,19 @@ Analizo la arquitectura desde el modelo STRIDE + vectores específicos de sistem
 
 ## V-09: DoS por Exhaustión de Snapshots Btrfs
 
-**Descripción:** Cada operación de `magic-apt` crea un Btrfs snapshot. Un atacante puede:
+**Descripción:** Cada operación de `hidra-apt` crea un Btrfs snapshot. Un atacante puede:
 - Llenar el disco con snapshots acumulados
 - Provocar que el sistema falle al intentar crear un nuevo snapshot
 - Degradar performance con demasiados subvolúmenes
 
 **Impacto:** MEDIO. Disponibilidad comprometida.
 
-**Feasibility:** ALTA (cualquier usuario con acceso a `magic-apt` puede hacerlo accidentalmente)
+**Feasibility:** ALTA (cualquier usuario con acceso a `hidra-apt` puede hacerlo accidentalmente)
 
 **Mitigación propuesta:**
-- **Límite configurable de snapshots:** `magic-apt` debe tener un máximo de snapshots (ej: 10). Al exceder, eliminar el más antiguo automáticamente.
+- **Límite configurable de snapshots:** `hidra-apt` debe tener un máximo de snapshots (ej: 10). Al exceder, eliminar el más antiguo automáticamente.
 - **Alertas de uso de disco:** Si los snapshots ocupan >20% del disco → warning al usuario.
-- **Snapshot cleanup automático:** `magic-apt cleanup` que elimine snapshots deprecated.
+- **Snapshot cleanup automático:** `hidra-apt cleanup` que elimine snapshots deprecated.
 
 ---
 
@@ -203,7 +203,7 @@ Analizo la arquitectura desde el modelo STRIDE + vectores específicos de sistem
 
 ## V-11: Audit Log Tampering
 
-**Descripción:** `/var/log/magic/audit.log` es write-only append en teoría, pero:
+**Descripción:** `/var/log/hidra/audit.log` es write-only append en teoría, pero:
 - Si `/var` es writable y no hay verificación de integridad del log, un atacante puede truncar o modificar el log
 - Sin log inmutable, no hay evidencia forense de compromiso
 
@@ -224,11 +224,11 @@ Analizo la arquitectura desde el modelo STRIDE + vectores específicos de sistem
 |----|--------|---------|-------------|--------|------------|
 | V-01 | Bootkit (registry.asc) | CRÍTICO | MEDIA | **MITIGADO** | TPM PCR binding + dm-verity en stage-1 + recovery read-only firmado |
 | V-02 | Evil Maid (Secure Boot) | CRÍTICO | BAJA-MEDIA | **MITIGADO** | Secure Boot mandatory + verificación en stage-0 |
-| V-03 | Supply Chain (magic-apt) | ALTO | MEDIA | **MITIGADO** | HSM/cosign (clave privada nunca en disco) + sandbox bubblewrap para apt + reproducible builds |
+| V-03 | Supply Chain (hidra-apt) | ALTO | MEDIA | **MITIGADO** | HSM/cosign (clave privada nunca en disco) + sandbox bubblewrap para apt + reproducible builds |
 | V-04 | Overlay Toxicity | ALTO | MEDIA | **MITIGADO** | POST-mount hash verification en stage-2 + allowlist de capas + dm-verity |
-| V-05 | Persistencia en /var, /etc | ALTO | ALTA | **MITIGADO** | Grimoire source of truth + verificación POST-mount contra manifest firmado + AppArmor mandatory |
+| V-05 | Persistencia en /var, /etc | ALTO | ALTA | **MITIGADO** | Overmind source of truth + verificación POST-mount contra manifest firmado + AppArmor mandatory |
 | V-06 | Weaponización de Rollback | MEDIO-ALTO | BAJA | **MITIGADO** | Rate limiting (3/hora) + deprecated flag + pre-snapshot de seguridad |
-| V-07 | YAML Injection (Grimoire) | CRÍTICO | MEDIA | **MITIGADO** | JSON Schema validation + firma obligatoria + denylist de campos + SRI para fuentes remotas |
+| V-07 | YAML Injection (Overmind) | CRÍTICO | MEDIA | **MITIGADO** | JSON Schema validation + firma obligatoria + denylist de campos + SRI para fuentes remotas |
 | V-08 | Bubblewrap Escape | MEDIO | BAJA | **MITIGADO** | Seccomp-bpf + AppArmor profile estricto + kernel hardening (unprivileged_userns_clone=0) |
 | V-09 | DoS por Snapshots | MEDIO | ALTA | **MITIGADO** | Límite de 10 snapshots + cleanup automático + alertas de uso de disco |
 | V-10 | Compromiso CI/CD | CRÍTICO | BAJA | **MITIGADO** | Self-hosted runners + HSM + SLSA Level 3 attestation + reproducible builds |
@@ -243,12 +243,12 @@ Analizo la arquitectura desde el modelo STRIDE + vectores específicos de sistem
 1. **✅ ¿Dónde vive la clave de firma?** → HSM externo. Solo `verify.pub` en disco. `ARCHITECTURE.md:127`
 2. **✅ ¿dm-verity está contemplado?** → Sí, mandatory en stage-1. `ARCHITECTURE.md:90`
 3. **✅ ¿Qué pasa si `registry.asc` está corrupto?** → TPM PCR binding. Si el archivo se reemplaza, los PCRs no matchean → boot denegado. `ARCHITECTURE.md:90`
-4. **✅ ¿Cómo se protege `magic.yaml`?** → JSON Schema + firma obligatoria + denylist de campos + SRI. `ARCHITECTURE.md:66-72`
-5. **✅ ¿Hay rate limiting en `magic-apt`?** → Sí, máximo 3 rollbacks/hora. `ARCHITECTURE.md:117`
+4. **✅ ¿Cómo se protege `hidra.yaml`?** → JSON Schema + firma obligatoria + denylist de campos + SRI. `ARCHITECTURE.md:66-72`
+5. **✅ ¿Hay rate limiting en `hidra-apt`?** → Sí, máximo 3 rollbacks/hora. `ARCHITECTURE.md:117`
 6. **✅ ¿El pipeline de CI usa runners self-hosted?** → Sí, SLSA Level 3. `BUILD.md:79`
 7. **✅ ¿`audit.log` tiene append-only?** → Sí, `chattr +a` + log shipping a SIEM. `ARCHITECTURE.md:83`
 8. **✅ ¿El recovery es modificable?** → No. Consola de recovery read-only firmada. Requiere challenge-response con clave fuera del disco. `ARCHITECTURE.md:90`
 9. **✅ ¿Keyring de apt?** → Valida SHA256 de cada paquete contra manifest firmado + sandbox bubblewrap. `ARCHITECTURE.md:98-110`
 10. **✅ ¿Cómo se evita paquete que enmascare binario?** → POST-mount verification en stage-2: hashes contra `registry.asc` + allowlist de capas. `ARCHITECTURE.md:91-94`
 11. **✅ ¿stage-1 verifica solo la base o todas las capas?** → POST-mount verifica TODAS las capas activas. `ARCHITECTURE.md:91-94`
-12. **✅ ¿Qué pasa si `grimoire apply` falla a mitad?** → Rollback automático al estado anterior. Transacción atómica. `ARCHITECTURE.md:96`
+12. **✅ ¿Qué pasa si `overmind apply` falla a mitad?** → Rollback automático al estado anterior. Transacción atómica. `ARCHITECTURE.md:96`

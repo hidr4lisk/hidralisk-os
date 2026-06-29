@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# smoke-test.sh — Verificación post-build del pipeline SpellOS
+# smoke-test.sh — Verificación post-build del pipeline Hidralisk
 #
 # Verifica que los artefactos del build son consistentes y válidos.
 # Ejecutar después de build.sh o stage5-verify.sh.
 #
 # Checks:
-#   (a) ISO magic bytes + tamaño ≥ 500MB
+#   (a) ISO hidra bytes + tamaño ≥ 500MB
 #   (b) attestation.intoto.jsonl → JSON válido + SHA-256 matchea ISO
 #   (c) registry.asc → firma clearsign GPG válida
-#   (d) Cadena checksums: base → magic → layer → iso consistente
+#   (d) Cadena checksums: base → hidra → layer → iso consistente
 #
 # Exit: 0 si todo pasa, 1 si algo falla.
 
@@ -19,13 +19,13 @@ REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 OUTDIR="${OUTDIR:-$REPO_DIR/output}"
 VERSION="${VERSION:-snapshot-$(date +%Y%m%d)}"
-GPG_KEY="${GPG_KEY:-build@spellos.dev}"
+GPG_KEY="${GPG_KEY:-build@hidralisk.dev}"
 
-ISO_FILE="$OUTDIR/SpellOS-$VERSION.iso"
+ISO_FILE="$OUTDIR/Hidralisk-$VERSION.iso"
 ATTESTATION="$OUTDIR/attestation.intoto.jsonl"
 REGISTRY="$OUTDIR/registry.asc"
 BASE_TAR="$OUTDIR/base-$VERSION.tar"
-MAGIC_TAR="$OUTDIR/magic-$VERSION.tar"
+HIDRA_TAR="$OUTDIR/hidra-$VERSION.tar"
 LAYER_TAR="$OUTDIR/layer-$VERSION.tar"
 
 RED='\033[0;31m'
@@ -40,7 +40,7 @@ pass() { echo -e "  ${GREEN}PASS${NC}: $1"; ((PASS++)); }
 fail() { echo -e "  ${RED}FAIL${NC}: $1" >&2; ((FAIL++)); }
 
 echo "╔══════════════════════════════════════════════════════════╗"
-echo "║           SpellOS Smoke Test — smoke-test.sh            ║"
+echo "║           Hidralisk Smoke Test — smoke-test.sh            ║"
 echo "╚══════════════════════════════════════════════════════════╝"
 echo ""
 
@@ -59,21 +59,21 @@ if command -v gpg &>/dev/null; then
     HAS_GPG=true
 fi
 
-# --- (a) ISO magic bytes + tamaño ≥ 500MB ---
+# --- (a) ISO hidra bytes + tamaño ≥ 500MB ---
 echo "═══ Check (a): Integridad de la ISO ═══"
 if [ ! -f "$ISO_FILE" ]; then
     fail "ISO no encontrada: $ISO_FILE"
 else
-    # Magic bytes: ISO 9660 o ELF hybrid (UEFI)
-    MAGIC=$(od -A n -t x1 -N 5 "$ISO_FILE" 2>/dev/null | tr -d ' \n' || echo "")
-    if echo "$MAGIC" | grep -qi "4549444601"; then
-        pass "ISO magic bytes: ELF hybrid (UEFI)"
-    elif echo "$MAGIC" | grep -qi "4344303031"; then
-        pass "ISO magic bytes: ISO 9660"
-    elif [ -n "$MAGIC" ]; then
-        fail "ISO magic bytes inesperados: $MAGIC"
+    # Hidra bytes: ISO 9660 o ELF hybrid (UEFI)
+    HIDRA=$(od -A n -t x1 -N 5 "$ISO_FILE" 2>/dev/null | tr -d ' \n' || echo "")
+    if echo "$HIDRA" | grep -qi "4549444601"; then
+        pass "ISO hidra bytes: ELF hybrid (UEFI)"
+    elif echo "$HIDRA" | grep -qi "4344303031"; then
+        pass "ISO hidra bytes: ISO 9660"
+    elif [ -n "$HIDRA" ]; then
+        fail "ISO hidra bytes inesperados: $HIDRA"
     else
-        fail "No se pudieron leer magic bytes de la ISO"
+        fail "No se pudieron leer hidra bytes de la ISO"
     fi
 
     # Tamaño ≥ 500MB
@@ -228,19 +228,19 @@ check_chain() {
 }
 
 check_chain "base" "$BASE_TAR" "$BASE_TAR.sha256"
-check_chain "magic" "$MAGIC_TAR" "$MAGIC_TAR.sha256"
+check_chain "hidra" "$HIDRA_TAR" "$HIDRA_TAR.sha256"
 check_chain "layer" "$LAYER_TAR" "$LAYER_TAR.sha256"
 check_chain "iso" "$ISO_FILE" "$ISO_FILE.sha256"
 
 # Verificar que los checksums de cada etapa apuntan al artefacto correcto
 # (que no haya mezcla de artefactos entre etapas)
-if [ -f "$BASE_TAR.sha256" ] && [ -f "$MAGIC_TAR.sha256" ]; then
+if [ -f "$BASE_TAR.sha256" ] && [ -f "$HIDRA_TAR.sha256" ]; then
     BASE_HASH=$(cut -d' ' -f1 < "$BASE_TAR.sha256")
-    MAGIC_HASH=$(cut -d' ' -f1 < "$MAGIC_TAR.sha256")
-    if [ "$BASE_HASH" != "$MAGIC_HASH" ]; then
-        pass "Cadena: base ≠ magic (etapas producen artefactos distintos — correcto)"
+    HIDRA_HASH=$(cut -d' ' -f1 < "$HIDRA_TAR.sha256")
+    if [ "$BASE_HASH" != "$HIDRA_HASH" ]; then
+        pass "Cadena: base ≠ hidra (etapas producen artefactos distintos — correcto)"
     else
-        fail "Cadena: base = magic (¿etapas idénticas? verificar pipeline)"
+        fail "Cadena: base = hidra (¿etapas idénticas? verificar pipeline)"
     fi
 fi
 echo ""

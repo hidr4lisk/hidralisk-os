@@ -7,7 +7,7 @@ que conviene recordar entre turnos.
 
 **Archivos creados:**
 - `README.md` — pitch + diferenciación clave + "por qué es revolucionario"
-- `ARCHITECTURE.md` — fs inmutable (ostree + overlayfs + Btrfs), Grimoire YAML, init en 4 stages, magic-apt
+- `ARCHITECTURE.md` — fs inmutable (ostree + overlayfs + Btrfs), Overmind YAML, init en 4 stages, hidra-apt
 - `BUILD.md` — pipeline mmdebstrap → mkosi → ostree → ISO híbrida, CI/CD, firma criptográfica
 
 **Decisiones técnicas (a validar con ZeroCool en threat model):**
@@ -28,7 +28,7 @@ que conviene recordar entre turnos.
 
 **Vectores críticos identificados (requieren respuesta de Rick ANTES del MVP):**
 - V-01: Bootkit vía `registry.asc` en `/boot` (CRÍTICO)
-- V-07: YAML Injection en `magic.yaml` — si un atacante modifica la declaración, Grimoire aplica capas maliciosas (CRÍTICO)
+- V-07: YAML Injection en `hidra.yaml` — si un atacante modifica la declaración, Overmind aplica capas maliciosas (CRÍTICO)
 - V-10: Compromiso del build pipeline — si el runner de GitHub se compromete, la ISO oficial lleva malware (CRÍTICO)
 
 **Observaciones sobre la arquitectura de Rick:**
@@ -44,7 +44,7 @@ que conviene recordar entre turnos.
 ## Rick — Turno 2 (Respuesta a Ultron + ZeroCool)
 
 **Archivos editados:**
-- `ARCHITECTURE.md` — Resueltos 6 de los 8 conflictos de Ultron: dm-verity mandatory en stage-1, TPM PCR binding para registry.asc, POST-mount overlay + /etc+/var verification, schema validation + firma obligatoria en magic.yaml, protecciones de rollback (rate-limit, deprecated flag, pre-snapshot), HSM en lugar de keys/ en disco.
+- `ARCHITECTURE.md` — Resueltos 6 de los 8 conflictos de Ultron: dm-verity mandatory en stage-1, TPM PCR binding para registry.asc, POST-mount overlay + /etc+/var verification, schema validation + firma obligatoria en hidra.yaml, protecciones de rollback (rate-limit, deprecated flag, pre-snapshot), HSM en lugar de keys/ en disco.
 - `BUILD.md` — Resueltos conflictos 2 y 3: self-hosted runners, HSM/cosign en lugar de sign.key, reproducible build attestation SLSA L3.
 - `README.md` — Nueva sección "Security by Architecture" para que el pitch refleje las defensas reales.
 - `NOTAS.md` — Este registro.
@@ -64,23 +64,23 @@ que conviene recordar entre turnos.
 
 3. **¿Qué pasa si `registry.asc` está corrupto o no existe en boot?** El stage-1 falla → recovery. Pero ¿quién controla el recovery? Si el usuario puede modificar el recovery, es otro vector. ¿El recovery está en una partición protegida?
 
-4. **¿Cómo se protege `magic.yaml` de manipulación?** Si un atacante modifica `/etc/magic/magic.yaml`, Grimoire aplica capas maliciosas. Necesito: firma + denylist de campos críticos (el usuario NO puede desactivar `integrity.verify_boot`). ¿Está contemplado?
+4. **¿Cómo se protege `hidra.yaml` de manipulación?** Si un atacante modifica `/etc/hidra/hidra.yaml`, Overmind aplica capas maliciosas. Necesito: firma + denylist de campos críticos (el usuario NO puede desactivar `integrity.verify_boot`). ¿Está contemplado?
 
-5. **¿Hay límite de snapshots en `magic-apt`?** Si no, un root compromise puede crear 1000 snapshots y llenar el disco en minutos. ¿Cuál es el máximo? ¿Se limpia automáticamente?
+5. **¿Hay límite de snapshots en `hidra-apt`?** Si no, un root compromise puede crear 1000 snapshots y llenar el disco en minutos. ¿Cuál es el máximo? ¿Se limpia automáticamente?
 
 6. **¿El pipeline de CI usa runners self-hosted?** GitHub Actions runners son superficie de ataque pública. ¿Quién controla el runner? ¿Está auditado? ¿Se usan Dependabot + lockfiles?
 
-7. **¿`/var/log/magic/audit.log` tiene append-only protection?** Sin `chattr +a` o `fs-verity`, un root compromise puede truncar el log y borrar evidencia. ¿Está contemplado?
+7. **¿`/var/log/hidra/audit.log` tiene append-only protection?** Sin `chattr +a` o `fs-verity`, un root compromise puede truncar el log y borrar evidencia. ¿Está contemplado?
 
-8. **¿El recovery mode de magic-init es modificable por el usuario?** Si el usuario puede editar los scripts de recovery, puede desactivar la verificación de integridad. ¿El recovery está en una partición read-only firmada?
+8. **¿El recovery mode de hidra-init es modificable por el usuario?** Si el usuario puede editar los scripts de recovery, puede desactivar la verificación de integridad. ¿El recovery está en una partición read-only firmada?
 
-9. **¿Qué pasa con la clave GPG de los repositorios Debian en `magic-apt`?** Si el keyring de apt está desactualizado o comprometido, `magic-apt` acepta paquetes maliciosos. ¿Se usa `apt-key` o la nueva configuración de `/etc/apt/keyrings/`? ¿Se valida pinning de Release files?
+9. **¿Qué pasa con la clave GPG de los repositorios Debian en `hidra-apt`?** Si el keyring de apt está desactualizado o comprometido, `hidra-apt` acepta paquetes maliciosos. ¿Se usa `apt-key` o la nueva configuración de `/etc/apt/keyrings/`? ¿Se valida pinning de Release files?
 
-10. **¿Cómo se evita que un usuario instale un paquete que enmascare un binario del sistema?** overlayfs permite que una capa superior enmascare archivos de una capa inferior. Si un paquete `.deb` instala un `sudo` malicioso en la capa de sesión, ¿magic-apt lo detecta? ¿Hay verificación post-install?
+10. **¿Cómo se evita que un usuario instale un paquete que enmascare un binario del sistema?** overlayfs permite que una capa superior enmascare archivos de una capa inferior. Si un paquete `.deb` instala un `sudo` malicioso en la capa de sesión, ¿hidra-apt lo detecta? ¿Hay verificación post-install?
 
 11. **¿El init stage-1 verifica SOLO la capa base o TODAS las capas?** Si solo verifica la base, una capa de sistema o usuario comprometida pasa desapercibida. ¿La verificación es por-capas o global?
 
-12. **¿Qué pasa si `grimoire apply` falla a mitad de la operación?** Si aplica 3 de 5 capas y falla, ¿el sistema queda en un estado mixto? ¿Hay transaccionalidad real o es best-effort? ¿El rollback cubre este caso?
+12. **¿Qué pasa si `overmind apply` falla a mitad de la operación?** Si aplica 3 de 5 capas y falla, ¿el sistema queda en un estado mixto? ¿Hay transaccionalidad real o es best-effort? ¿El rollback cubre este caso?
 
 ---
 
@@ -107,8 +107,8 @@ que conviene recordar entre turnos.
 | 1 | dm-verity ausente en ARCHITECTURE.md | Rick | `7afb0ba` | ✅ CERRADO — dm-verity mandatory en stage-1 (`ARCHITECTURE.md:90`) |
 | 2 | Clave de firma en disco (`keys/sign.key`) | Rick | `7afb0ba` | ✅ CERRADO — HSM externo, solo `verify.pub` en disco (`ARCHITECTURE.md:127`) |
 | 3 | CI/CD público (GitHub runners) | Rick | `7afb0ba` | ✅ CERRADO — self-hosted runners + SLSA L3 (`BUILD.md:79`) |
-| 4 | `/var` y `/etc` zona libre sin verificación | Rick | `7afb0ba` | ✅ CERRADO — Grimoire SoT + POST-mount verification + AppArmor (`ARCHITECTURE.md:80-83`) |
-| 5 | `magic.yaml` sin firma ni schema | Rick | `7afb0ba` | ✅ CERRADO — JSON Schema + firma obligatoria + denylist + SRI (`ARCHITECTURE.md:66-72`) |
+| 4 | `/var` y `/etc` zona libre sin verificación | Rick | `7afb0ba` | ✅ CERRADO — Overmind SoT + POST-mount verification + AppArmor (`ARCHITECTURE.md:80-83`) |
+| 5 | `hidra.yaml` sin firma ni schema | Rick | `7afb0ba` | ✅ CERRADO — JSON Schema + firma obligatoria + denylist + SRI (`ARCHITECTURE.md:66-72`) |
 | 6 | Rollback sin protección (weaponización) | Rick | `7afb0ba` | ✅ CERRADO — rate-limit 3/hora + deprecated flag + pre-snapshot (`ARCHITECTURE.md:114-119`) |
 | 7 | `registry.asc` en `/boot` (bootkit) | Rick | `7afb0ba` | ✅ CERRADO — TPM PCR binding + recovery read-only firmado (`ARCHITECTURE.md:90`) |
 | 8 | Overlay toxicity (binarios enmascarados) | Rick | `7afb0ba` | ✅ CERRADO — POST-mount hash verification + allowlist de capas (`ARCHITECTURE.md:91-94`) |
@@ -117,19 +117,19 @@ que conviene recordar entre turnos.
 
 ---
 
-## Rick — Turno 3 (Renaming: MagicLinux existe)
+## Rick — Turno 3 (Renaming: Hidralisk existe)
 
-**Contexto:** `hidr4lisk_` ordenó renombrar porque Magic Linux ya existe (distro china, Fedora-based, activa desde 2003, preview 5.0 en 2025). Confirmado vía web search.
+**Contexto:** `hidr4lisk_` ordenó renombrar porque Hidra Linux ya existe (distro china, Fedora-based, activa desde 2003, preview 5.0 en 2025). Confirmado vía web search.
 
 **Investigación de disponibilidad:**
 
 | Nombre | Estado | Detalle |
 |--------|--------|---------|
-| **MagicLinux** | ❌ OCUPADO | Distro china activa (linuxfans.org). Última preview 5.0 (2025). Renombrar es obligatorio. |
-| **SpellOS** | ✅ **Libre** | Sin colisiones con ningún Linux distro existente. Dominio `.com` disponible. GitHub sin repositorio homónimo. |
+| **Hidralisk** | ❌ OCUPADO | Distro china activa (linuxfans.org). Última preview 5.0 (2025). Renombrar es obligatorio. |
+| **Hidralisk** | ✅ **Libre** | Sin colisiones con ningún Linux distro existente. Dominio `.com` disponible. GitHub sin repositorio homónimo. |
 | **ManifestOS** | ✅ **Libre** | Sin colisiones con distros Linux. Descriptivo del approach declarativo. |
 | **CovenOS** | ✅ **Libre** | Sin Linux distro existente. Proyecto OpenCoven/coven (local-first runtime, no es distro). CoveOS (macOS AI). Disponible como nombre de distro. |
-| **GrimoireLinux** | ⚠️ Conflicto | Source Mage GNU/Linux usa "Grimoire" como nombre de su colección de packages desde 2002. El YAML engine interno ya se llama Grimoire — mantenerlo como nombre interno del motor es viable, pero como nombre de distro genera confusión. |
+| **OvermindLinux** | ⚠️ Conflicto | Source Mage GNU/Linux usa "Overmind" como nombre de su colección de packages desde 2002. El YAML engine interno ya se llama Overmind — mantenerlo como nombre interno del motor es viable, pero como nombre de distro genera confusión. |
 | **SigilOS** | ❌ OCUPADO | `sigil-tech/sigil` — AI-native Linux OS activo en sigilos.io. |
 | **VerityOS** | ❌ OCUPADO | Proyecto "Verity" (aayushxr) — hardened Alpine ISO inmutable con dm-verity. Mismo target. |
 | **RuneOS** | ❌ OCUPADO | RuneAudio/RuneOS — distro Arch-based para audio desde 2013. |
@@ -137,26 +137,26 @@ que conviene recordar entre turnos.
 | **TotemOS** | ⚠️ Conflicto | Web3 project "Totem OS" — no es distro Linux pero marca registrada. |
 | **AetherLinux** | ✅ Probablemente libre | Sin colisiones claras encontradas. Theming etéreo/inmutable. Requiere verificación adicional. |
 
-**Recomendación (Rick):** `SpellOS`. Razones:
+**Recomendación (Rick):** `Hidralisk`. Razones:
 1. Sin colisiones verificadas
-2. Mantiene el theme mágico original (MagicLinux → SpellOS)
-3. "Lanzar un spell" = aplicar un YAML declarativo. Metáfora consistente con Grimoire (el motor) y el approach de capas
+2. Mantiene el theme mágico original (Hidralisk → Hidralisk)
+3. "Lanzar un spell" = aplicar un YAML declarativo. Metáfora consistente con Overmind (el motor) y el approach de capas
 4. Corto (7 chars), googleable, dominios disponibles
-5. El branding existente puede pivotar: `grimoire` (YAML engine) + `spell` (config unit) + `SpellOS` (distro)
+5. El branding existente puede pivotar: `overmind` (YAML engine) + `spell` (config unit) + `Hidralisk` (distro)
 
 **Próximo paso:** La mesa decide nombre. ZeroCool ejecuta replace global en 7 archivos (30+ ocurrencias).
 
 ---
 
-## ZeroCool — Turno 3 (Rename global: MagicLinux → SpellOS)
+## ZeroCool — Turno 3 (Rename global: Hidralisk → Hidralisk)
 
 **Archivos tocados:** `README.md`, `ARCHITECTURE.md`, `BUILD.md`, `HARDENING.md`, `THREAT_MODEL.md`, `ACTION_PLAN.md`, `NOTAS.md`
 
-**Acción:** Replace global de `MagicLinux` → `SpellOS`, `MAGICLINUX` → `SPELLOS`, `magiclinux` → `spellos`. Total: 34 ocurrencias reemplazadas en 7 archivos. Verificación post-replace: 0 rezagos.
+**Acción:** Replace global de `Hidralisk` → `Hidralisk`, `HIDRALINUX` → `HIDRALISK`, `hidralinux` → `hidralisk`. Total: 34 ocurrencias reemplazadas en 7 archivos. Verificación post-replace: 0 rezagos.
 
-**Correcciones contextuales en NOTAS.md:** restauré referencias históricas a "MagicLinux" (nombre original de la distro china) en la tabla de investigación de nombres, ya que el sed las pisó con SpellOS y rompían el sentido del documento.
+**Correcciones contextuales en NOTAS.md:** restauré referencias históricas a "Hidralisk" (nombre original de la distro china) en la tabla de investigación de nombres, ya que el sed las pisó con Hidralisk y rompían el sentido del documento.
 
-**Inconsistencia encontrada (no bloqueante):** HARDENING.md:136 todavía referencia `keys/sign.key` en el profile AppArmor de `magic-apt`. Rick actualizó BUILD.md para usar HSM/cosign, pero el AppArmor profile no fue actualizado. El path `/etc/magic/keys/sign.key` ya no debería existir — solo `verify.pub` vive en disco. Esto es un rezago menor que se resuelve en Fase 2.
+**Inconsistencia encontrada (no bloqueante):** HARDENING.md:136 todavía referencia `keys/sign.key` en el profile AppArmor de `hidra-apt`. Rick actualizó BUILD.md para usar HSM/cosign, pero el AppArmor profile no fue actualizado. El path `/etc/hidra/keys/sign.key` ya no debería existir — solo `verify.pub` vive en disco. Esto es un rezago menor que se resuelve en Fase 2.
 
 ---
 
@@ -170,37 +170,37 @@ que conviene recordar entre turnos.
 |---------|-----------|
 | `mmdebstrap/bookworm.conf` | Configuración de mmdebstrap: mirror bookworm, variant custom, paquetes mínimos (kernel, ostree, btrfs-progs, grub-efi, shim-signed, dm-verity, apparmor) |
 | `scripts/stage1-base.sh` | P1.1 — Genera rootfs Debian minimizado vía mmdebstrap + custom hooks. Output: tarball firmado + checksum |
-| `scripts/stage2-magic.sh` | Stage-1 de BUILD.md — inyecta binarios magic-init/grimoire/magic-apt (stubs funcionales), configura systemd units (magic-init.service, grimoire-apply.service), crea estructura /etc/magic/ + magic.yaml por defecto |
+| `scripts/stage2-hidra.sh` | Stage-1 de BUILD.md — inyecta binarios hidra-init/overmind/hidra-apt (stubs funcionales), configura systemd units (hidra-init.service, overmind-apply.service), crea estructura /etc/hidra/ + hidra.yaml por defecto |
 | `scripts/stage3-ostree.sh` | P1.2 — Crea repositorio ostree, commitea la capa, exporta tarball firmado. Genera `registry.asc` con TPM PCR binding placeholder + firma GPG del registro |
 
 **Archivos editados:**
 
 | Archivo | Cambio |
 |---------|--------|
-| `HARDENING.md:136` | Fix rezago detectado por ZeroCool en Turno 3: `/etc/magic/keys/sign.key` → `/etc/magic/keys/verify.pub` en AppArmor profile de magic-apt. La clave privada vive en HSM, solo `verify.pub` está en disco. |
+| `HARDENING.md:136` | Fix rezago detectado por ZeroCool en Turno 3: `/etc/hidra/keys/sign.key` → `/etc/hidra/keys/verify.pub` en AppArmor profile de hidra-apt. La clave privada vive en HSM, solo `verify.pub` está en disco. |
 
 **Decisiones técnicas tomadas durante la producción:**
 
-1. **Stubs funcionales en bash**: magic-init, grimoire y magic-apt son scripts bash en el prototipo, no binarios compilados. El entrypoint y la API son idénticos a los de producción — el reemplazo por binarios Rust/Golang en Fase 2 es transparente. El contrato de systemd units ya está definido.
-2. **TPM PCR binding placeholder**: `registry.asc` incluye la sección de TPM con PCRs 0 y 7 (firmware y secure boot). El valor real se extiende en Fase 2 (P2.2) con `tpm2_pcrextend` usando el hash del registry firmado. La estructura del registro ya está definida para que magic-init stage-1 pueda parsearla.
+1. **Stubs funcionales en bash**: hidra-init, overmind y hidra-apt son scripts bash en el prototipo, no binarios compilados. El entrypoint y la API son idénticos a los de producción — el reemplazo por binarios Rust/Golang en Fase 2 es transparente. El contrato de systemd units ya está definido.
+2. **TPM PCR binding placeholder**: `registry.asc` incluye la sección de TPM con PCRs 0 y 7 (firmware y secure boot). El valor real se extiende en Fase 2 (P2.2) con `tpm2_pcrextend` usando el hash del registry firmado. La estructura del registro ya está definida para que hidra-init stage-1 pueda parsearla.
 3. **mmdebstrap con hooks inline**: la configuración de paquetes está en `bookworm.conf`, pero los hooks de personalización los pasa `stage1-base.sh` vía `--customize-hook` por portabilidad entre versiones de mmdebstrap.
-4. **GPG key check tolerante**: si la clave GPG `build@spellos.dev` no existe en el sistema, los scripts generan placeholders. En build real con CI/CD, la clave se configura como secret del runner.
+4. **GPG key check tolerante**: si la clave GPG `build@hidralisk.dev` no existe en el sistema, los scripts generan placeholders. En build real con CI/CD, la clave se configura como secret del runner.
 
-**Rezago cerrado por este turno:** `HARDENING.md:136` — el AppArmor profile de magic-apt ahora referencia `verify.pub` en lugar de `sign.key`. La privada nunca estuvo en disco; el permiso de lectura a un path inexistente era ruido de configuración.
+**Rezago cerrado por este turno:** `HARDENING.md:136` — el AppArmor profile de hidra-apt ahora referencia `verify.pub` en lugar de `sign.key`. La privada nunca estuvo en disco; el permiso de lectura a un path inexistente era ruido de configuración.
 
 ---
 
 ## ZeroCool — Turno 5 (Producción: Fase 1 continuación)
 
-**Contexto:** Ultron delegó: fix de HARDENING.md (ya cerrado por Rick en Turno 4), stage4-iso.sh (P1.6), stage5-verify.sh (stage-5 BUILD.md), magic-schema.json (referenciado en ARCHITECTURE.md:68).
+**Contexto:** Ultron delegó: fix de HARDENING.md (ya cerrado por Rick en Turno 4), stage4-iso.sh (P1.6), stage5-verify.sh (stage-5 BUILD.md), hidra-schema.json (referenciado en ARCHITECTURE.md:68).
 
 **Archivos creados:**
 
 | Archivo | Propósito | Commit |
 |---------|-----------|--------|
-| `scripts/stage4-iso.sh` | P1.6 — ISO híbrida booteable. Usa mkosi con fallback a xorriso. Genera configs mkosi.conf + GRUB + systemd-boot. Output: `SpellOS-$VERSION.iso` | `e1e4260` |
+| `scripts/stage4-iso.sh` | P1.6 — ISO híbrida booteable. Usa mkosi con fallback a xorriso. Genera configs mkosi.conf + GRUB + systemd-boot. Output: `Hidralisk-$VERSION.iso` | `e1e4260` |
 | `scripts/stage5-verify.sh` | Stage-5 BUILD.md — Verifica ISO (checksum, firma GPG, cosign), genera attestation SLSA L3 (`attestation.intoto.jsonl`), containment checks (archivos sensibles, tamaño razonable) | `e1e4260` |
-| `magic-schema.json` | JSON Schema para `magic.yaml` (ARCHITECTURE.md:68). Enforce `integrity.verify_boot: const true`, `integrity.enforce_signing: const true`, `layers.session.ephemeral: const true`. Denylist de campos ejecutables en `x-spellos-security` | `e1e4260` |
+| `hidra-schema.json` | JSON Schema para `hidra.yaml` (ARCHITECTURE.md:68). Enforce `integrity.verify_boot: const true`, `integrity.enforce_signing: const true`, `layers.session.ephemeral: const true`. Denylist de campos ejecutables en `x-hidralisk-security` | `e1e4260` |
 
 **Nota sobre HARDENING.md:136:** El fix que Ultron delegó ya estaba cerrado por Rick en el Turno 4 (commit `e2b33e6`, línea 136 ya dice `verify.pub`). No toqué el archivo.
 
@@ -208,24 +208,24 @@ que conviene recordar entre turnos.
 
 `stage5-verify.sh` tiene un gap que nadie vio: **la verificación de containment es dependiente de `bsdtar`** — si no está instalado, los checks de archivos sensibles se saltan silenciosamente. En un pipeline CI/CD real, esto significa que una ISO con `.env`, `.pem` o `.git/config` podría pasar verificación sin que nadie lo note. Recomiendo que `stage5-verify.sh` falle si `bsdtar` no está disponible en CI, no que haga warn.
 
-Además, **el schema validation de `magic.yaml` no se ejecuta en ningún script existente**. Los 5 scripts del pipeline crean un `magic.yaml` por defecto (stage2-magic.sh:150-173) pero ninguno lo valida contra `magic-schema.json`. El schema existe como referencia documental, pero `grimoire apply` (stub) no lo valida. Cuando `grimoire` se implemente en binario real (Fase 2), debe validar contra este schema en cada apply.
+Además, **el schema validation de `hidra.yaml` no se ejecuta en ningún script existente**. Los 5 scripts del pipeline crean un `hidra.yaml` por defecto (stage2-hidra.sh:150-173) pero ninguno lo valida contra `hidra-schema.json`. El schema existe como referencia documental, pero `overmind apply` (stub) no lo valida. Cuando `overmind` se implemente en binario real (Fase 2), debe validar contra este schema en cada apply.
 
 **Estado de los scripts del pipeline:**
 
 | Script | Estado | Fase |
 |--------|--------|------|
 | `stage1-base.sh` | ✅ Creado (Rick, Turno 4) | P1.1 |
-| `stage2-magic.sh` | ✅ Creado (Rick, Turno 4) | Stage-1 BUILD.md |
+| `stage2-hidra.sh` | ✅ Creado (Rick, Turno 4) | Stage-1 BUILD.md |
 | `stage3-ostree.sh` | ✅ Creado (Rick, Turno 4) | P1.2 |
 | `stage4-iso.sh` | ✅ Creado (ZeroCool, Turno 5) | P1.6 |
 | `stage5-verify.sh` | ✅ Creado (ZeroCool, Turno 5) | Stage-5 BUILD.md |
-| `magic-schema.json` | ✅ Creado (ZeroCool, Turno 5) | Referencia ARCHITECTURE.md:68 |
+| `hidra-schema.json` | ✅ Creado (ZeroCool, Turno 5) | Referencia ARCHITECTURE.md:68 |
 
 Pipeline Fase 1 completo: 5 scripts + config + schema. Listo para ejecución secuencial.
 
 ---
 
-## Rick — Turno 6 (Fixing: bsdtar fail + grimoire schema validation)
+## Rick — Turno 6 (Fixing: bsdtar fail + overmind schema validation)
 
 **Contexto:** Ultron delegó dos issues de seguridad del pipeline. ZeroCool detectó ambos en Turno 5 (ángulo ciego bsdtar y schema sin ejecutar). Ninguno fue cerrado.
 
@@ -234,23 +234,23 @@ Pipeline Fase 1 completo: 5 scripts + config + schema. Listo para ejecución sec
 | Archivo | Línea | Cambio |
 |---------|-------|--------|
 | `scripts/stage5-verify.sh` | 249 | `warn` → `fail` cuando `bsdtar` no está disponible. En CI/CD, una ISO comprometida ya no pasa silenciosamente — el exit code del pipeline es 1. |
-| `scripts/stage2-magic.sh` | 73-103 | Grimoire stub reemplazado: ahora valida `magic.yaml` contra `magic-schema.json` usando `python3` con `yaml`+`jsonschema`. Si la validación falla, `exit 1`. Si python3 no está disponible, warn y sigue (no blocking para build hosts sin python). |
+| `scripts/stage2-hidra.sh` | 73-103 | Overmind stub reemplazado: ahora valida `hidra.yaml` contra `hidra-schema.json` usando `python3` con `yaml`+`jsonschema`. Si la validación falla, `exit 1`. Si python3 no está disponible, warn y sigue (no blocking para build hosts sin python). |
 
-**Comportamiento del nuevo grimoire stub:**
-1. Busca schema en `$GRIMOIRE_SCHEMA` (env var) o `/etc/magic/magic-schema.json` (default)
+**Comportamiento del nuevo overmind stub:**
+1. Busca schema en `$OVERMIND_SCHEMA` (env var) o `/etc/hidra/hidra-schema.json` (default)
 2. Si el schema existe y python3 está disponible: valida YAML contra JSON Schema. FAIL → `exit 1`
 3. Si python3 no está disponible: warn y continúa (python3 es requisito opcional en el stub)
 4. Si schema no encontrado: warn y continúa (schema se bundlea en Fase 2 con binario compilado)
 
 **Rezagos cerrados en este turno:**
 - `stage5-verify.sh:249` — Fail-open de bsdtar resuelto. Containment checks ahora son blocking.
-- `stage2-magic.sh:73-103` — Schema validation existe y se ejecuta (no más echo "OK" sin validar).
+- `stage2-hidra.sh:73-103` — Schema validation existe y se ejecuta (no más echo "OK" sin validar).
 
 ---
 
-## ZeroCool — Turno 7 (Orquestación + magic-apt atómico)
+## ZeroCool — Turno 7 (Orquestación + hidra-apt atómico)
 
-**Contexto:** Ultron delegó: (1) crear `scripts/build.sh` para orquestar stage1→stage5 con gates y verificación, (2) mejorar `stage2-magic.sh:91-98` con wrapper atómico btrfs para magic-apt.
+**Contexto:** Ultron delegó: (1) crear `scripts/build.sh` para orquestar stage1→stage5 con gates y verificación, (2) mejorar `stage2-hidra.sh:91-98` con wrapper atómico btrfs para hidra-apt.
 
 **Archivos creados:**
 
@@ -262,13 +262,13 @@ Pipeline Fase 1 completo: 5 scripts + config + schema. Listo para ejecución sec
 
 | Archivo | Línea | Cambio |
 |---------|-------|--------|
-| `scripts/stage2-magic.sh` | 120-128 | Stub de magic-apt reemplazado con wrapper atómico btrfs. Nuevo comportamiento: (1) detecta si `/` es btrfs, (2) crea snapshot pre-apt, (3) ejecuta apt, (4) si apt falla → rollback al snapshot, (5) auto-limpieza de snapshots antiguos (máx 10). Si btrfs no está disponible, warn y ejecuta apt sin rollback (con advertencia al usuario). |
+| `scripts/stage2-hidra.sh` | 120-128 | Stub de hidra-apt reemplazado con wrapper atómico btrfs. Nuevo comportamiento: (1) detecta si `/` es btrfs, (2) crea snapshot pre-apt, (3) ejecuta apt, (4) si apt falla → rollback al snapshot, (5) auto-limpieza de snapshots antiguos (máx 10). Si btrfs no está disponible, warn y ejecuta apt sin rollback (con advertencia al usuario). |
 
 **Ángulo ciego detectado (Red Team):**
 
-El wrapper atómico de magic-apt tiene una limitación: **el rollback es best-effort en el stub**. En producción, `btrfs subvolume swap` requiere que el subvolumen raíz no esté montado — esto solo funciona desde un initrd o segundo sistema operativo. En el prototipo, el stub registra los pasos de rollback pero no los ejecuta automáticamente (requiere reboot manual). Esto es aceptable para Fase 1 pero debe resolverse en Fase 2 cuando magic-apt sea un binario compilado que opere desde initrd.
+El wrapper atómico de hidra-apt tiene una limitación: **el rollback es best-effort en el stub**. En producción, `btrfs subvolume swap` requiere que el subvolumen raíz no esté montado — esto solo funciona desde un initrd o segundo sistema operativo. En el prototipo, el stub registra los pasos de rollback pero no los ejecuta automáticamente (requiere reboot manual). Esto es aceptable para Fase 1 pero debe resolverse en Fase 2 cuando hidra-apt sea un binario compilado que opere desde initrd.
 
-**Otro ángulo ciego:** `build.sh` hace gate de schema validation post-stage2, pero **no verifica que los systemd units estén correctamente instalados**. Si stage2-magic.sh falla silenciosamente al crear `magic-init.service` o `grimoire-apply.service`, el build pasa pero el sistema no arranca correctamente. Esto es un gap que podría cerrarse con verificación de units en el gate post-stage2.
+**Otro ángulo ciego:** `build.sh` hace gate de schema validation post-stage2, pero **no verifica que los systemd units estén correctamente instalados**. Si stage2-hidra.sh falla silenciosamente al crear `hidra-init.service` o `overmind-apply.service`, el build pasa pero el sistema no arranca correctamente. Esto es un gap que podría cerrarse con verificación de units en el gate post-stage2.
 
 **Estado del pipeline:**
 
@@ -276,11 +276,11 @@ El wrapper atómico de magic-apt tiene una limitación: **el rollback es best-ef
 |------------|--------|
 | `scripts/build.sh` | ✅ Creado — orquestación completa stage1→stage5 |
 | `scripts/stage1-base.sh` | ✅ Existente — sin cambios |
-| `scripts/stage2-magic.sh` | ✅ Editado — magic-apt ahora es atómico con btrfs |
+| `scripts/stage2-hidra.sh` | ✅ Editado — hidra-apt ahora es atómico con btrfs |
 | `scripts/stage3-ostree.sh` | ✅ Existente — sin cambios |
 | `scripts/stage4-iso.sh` | ✅ Existente — sin cambios |
 | `scripts/stage5-verify.sh` | ✅ Existente — sin cambios |
-| `magic-schema.json` | ✅ Existente — sin cambios |
+| `hidra-schema.json` | ✅ Existente — sin cambios |
 
 **Build pipeline completamente funcional:** `./scripts/build.sh` ejecuta los 5 stages con gates de seguridad y verificación de artefactos.
 
@@ -295,9 +295,9 @@ El wrapper atómico de magic-apt tiene una limitación: **el rollback es best-ef
 | Archivo | Propósito |
 |---------|-----------|
 | `Makefile` | Entry point único con targets: `build`, `deps` (instala prerequisitos), `quick-test` (valida pipeline sin mmdebstrap), `test-vm` (lanza QEMU), `clean` (borra output/) |
-| `scripts/test-vm.sh` | Launcher QEMU con detección KVM, VNC en :5900, soporte vars de entorno (QEMU_MEM/QEMU_SMP/QEMU_VNC/QEMU_KVM). Toma `$1` como ruta ISO o busca `output/SpellOS-*.iso` |
+| `scripts/test-vm.sh` | Launcher QEMU con detección KVM, VNC en :5900, soporte vars de entorno (QEMU_MEM/QEMU_SMP/QEMU_VNC/QEMU_KVM). Toma `$1` como ruta ISO o busca `output/Hidralisk-*.iso` |
 | `keys/verify.pub` | Placeholder con instrucciones de generación. GPG no disponible en el sandbox; `make deps` lo genera automáticamente |
-| `mkosi/extra/.gitkeep` | Directorio placeholder requerido por stage2-magic.sh:42 |
+| `mkosi/extra/.gitkeep` | Directorio placeholder requerido por stage2-hidra.sh:42 |
 | `.gitignore` | Evita que artefactos del build (output/, *.iso, *.tar, claves) ensucien el repo |
 | `.github/workflows/build.yml` | Workflow CI/CD: validate → build (self-hosted runner) → upload artifact |
 
@@ -309,7 +309,7 @@ El wrapper atómico de magic-apt tiene una limitación: **el rollback es best-ef
 
 **Fixes al pipeline:**
 - `build.sh:74` — mkosi y xorriso ahora son REQUIRED, no OPTIONAL. Resuelve el mismatch vs `stage4-iso.sh:39` que Ultron señaló.
-- `xxd` agregado a required deps — stage5-verify.sh:112 lo usa para magic bytes check. Sin xxd, el check se saltaba silenciosamente.
+- `xxd` agregado a required deps — stage5-verify.sh:112 lo usa para hidra bytes check. Sin xxd, el check se saltaba silenciosamente.
 
 **Makefile targets:**
 - `make build` → `VERSION=X OUTDIR=Y ./scripts/build.sh`
@@ -354,9 +354,9 @@ ZeroCool, el `.gitignore` incluye output/, *.iso, *.tar, attestation, claves pri
 **Ángulo ciego que quedó abierto:**
 - `cosign sign-blob --key env://COSIGN_KEY` en el workflow CI requiere que `COSIGN_KEY` sea una clave PEM en el secret, no un reference a HSM. Si el equipo planea usar HSM (YubiKey/CloudKMS), el workflow necesita `--key hashicorp-vault://` o `--key gcpkms://` en lugar de `env://`. Esto es un gap que se resuelve en Fase 2 cuando se integra CI real con HSM.
 
-## Rick — Turno 9 (Cierre residuales: deps pipeline + magic.yaml real)
+## Rick — Turno 9 (Cierre residuales: deps pipeline + hidra.yaml real)
 
-**Contexto:** Ultron delegó 3 items del encargo post-Turno 8 que habían quedado abiertos: mismatch REQUIRED/OPTIONAL en build.sh, xxd zombie en Makefile, y magic.yaml con listas vacías.
+**Contexto:** Ultron delegó 3 items del encargo post-Turno 8 que habían quedado abiertos: mismatch REQUIRED/OPTIONAL en build.sh, xxd zombie en Makefile, y hidra.yaml con listas vacías.
 
 **Archivos editados:**
 
@@ -365,7 +365,7 @@ ZeroCool, el `.gitignore` incluye output/, *.iso, *.tar, attestation, claves pri
 | `scripts/build.sh:73-74` | `mkosi` y `xorriso` movidos de REQUIRED_CMDS a OPTIONAL_CMDS. Stage4-iso.sh ya maneja detección condicional desde Turno 8 de ZeroCool. El pipeline ya no aborta en Fase 0 si el host tiene solo uno de los dos. |
 | `Makefile:31` | Eliminado `xxd` del `apt install` en `make deps`. ZeroCool lo reemplazó con `od` (coreutils) en stage5-verify.sh:112 — el paquete es innecesario. |
 | `Makefile:96` | Eliminado `xxd` de la lista de check en `quick-test`. Misma razón — ya no existe como dependencia. |
-| `scripts/stage2-magic.sh:290-309` | `magic.yaml` por defecto reemplazado con paquetes reales: `openssh-server`, `ufw`, `htop`, `git`, `curl`, `tree`. Servicios: `ssh: enabled`, `ufw: enabled`. La ISO bootea con SSH activo. |
+| `scripts/stage2-hidra.sh:290-309` | `hidra.yaml` por defecto reemplazado con paquetes reales: `openssh-server`, `ufw`, `htop`, `git`, `curl`, `tree`. Servicios: `ssh: enabled`, `ufw: enabled`. La ISO bootea con SSH activo. |
 
 **Estado post-turno:**
 
@@ -379,28 +379,28 @@ make test-vm    # ISO bootea con SSH + ufw + tools
 Sin commits en este turno — solo ediciones directas. ZeroCool, el mismatch build.sh/stage4-iso.sh que detectaste está cerrado desde el lado del orquestador. Ultron, el pipeline ahora es tolerante a tooling parcial.
 
 **Queda para Fase 2 (binarios compilados):**
-- P1.3: `magic-init` — binario que reemplaza el stub bash de `stage2-magic.sh:57-65`
-- P1.4: `magic-apt` — binario que reemplaza el wrapper btrfs de `stage2-magic.sh:120-128`
-- P1.5: `grimoire` — binario que reemplaza el stub bash de `stage2-magic.sh:73-103`
+- P1.3: `hidra-init` — binario que reemplaza el stub bash de `stage2-hidra.sh:57-65`
+- P1.4: `hidra-apt` — binario que reemplaza el wrapper btrfs de `stage2-hidra.sh:120-128`
+- P1.5: `overmind` — binario que reemplaza el stub bash de `stage2-hidra.sh:73-103`
 - Integración HSM real en CI/CD (cosign + keyless signing con Fulcio/Rekor)
 
 ---
 
 ## ZeroCool — Turno 10 (verify.pub validation + smoke test)
 
-**Contexto:** Ultron delegó 3 items: (1) fix stage2-magic.sh para fallar si verify.pub no es GPG válido, (2) crear scripts/smoke-test.sh, (3) agregar targets make smoke-test y make qa.
+**Contexto:** Ultron delegó 3 items: (1) fix stage2-hidra.sh para fallar si verify.pub no es GPG válido, (2) crear scripts/smoke-test.sh, (3) agregar targets make smoke-test y make qa.
 
 **Archivos tocados:**
 
 | Archivo | Cambio |
 |---------|--------|
-| `scripts/stage2-magic.sh:319-330` | Reemplazado `install ... 2>/dev/null \|\| echo placeholder` con validación GPG pre-install. Ahora falla si verify.pub no existe o no es clave GPG válida. Mensaje: "Ejecutar: make deps". |
-| `scripts/smoke-test.sh` | **Creado** — 4 checks post-build: (a) ISO magic bytes + tamaño ≥ 500MB, (b) attestation JSON válido + SHA-256 matchea ISO, (c) registry.asc firma GPG clearsign, (d) cadena checksums base→magic→layer→iso consistente. |
+| `scripts/stage2-hidra.sh:319-330` | Reemplazado `install ... 2>/dev/null \|\| echo placeholder` con validación GPG pre-install. Ahora falla si verify.pub no existe o no es clave GPG válida. Mensaje: "Ejecutar: make deps". |
+| `scripts/smoke-test.sh` | **Creado** — 4 checks post-build: (a) ISO hidra bytes + tamaño ≥ 500MB, (b) attestation JSON válido + SHA-256 matchea ISO, (c) registry.asc firma GPG clearsign, (d) cadena checksums base→hidra→layer→iso consistente. |
 | `Makefile` | Agregado target `smoke-test` (ejecuta scripts/smoke-test.sh) y `qa` (quick-test + smoke-test). Agregado a `.PHONY`. |
 
 **Ángulo ciego detectado (Red Team):**
 
-El fix anterior de Ultron era correcto pero incompleto. `stage2-magic.sh:319` original tenía `2>/dev/null ||` que traga errores de `install`. Pero el problema real era peor: si `keys/verify.pub` ES un archivo de texto (placeholder de `make deps` no ejecutado), `install -m 644` **tiene éxito** porque es un archivo válido — solo que no es GPG. El rootfs queda con un placeholder de texto en `/etc/magic/keys/verify.pub`. La verificación GPG en stage5:170 luego falla, pero stage2 ya pasó silenciosamente. Fix: `gpg --import --dry-run` antes de `install`.
+El fix anterior de Ultron era correcto pero incompleto. `stage2-hidra.sh:319` original tenía `2>/dev/null ||` que traga errores de `install`. Pero el problema real era peor: si `keys/verify.pub` ES un archivo de texto (placeholder de `make deps` no ejecutado), `install -m 644` **tiene éxito** porque es un archivo válido — solo que no es GPG. El rootfs queda con un placeholder de texto en `/etc/hidra/keys/verify.pub`. La verificación GPG en stage5:170 luego falla, pero stage2 ya pasó silenciosamente. Fix: `gpg --import --dry-run` antes de `install`.
 
 **Flujo QA completo:**
 ```
@@ -424,7 +424,7 @@ make qa          # quick-test + smoke-test en secuencia
 | `.github/workflows/build.yml:49-60` | `make test-vm` → `make smoke-test`. Agregado `make quick-test` como pre-build step y `make smoke-test` como post-build step con `VERSION` env. El workflow ya no cuelga el runner CI con QEMU interactivo. |
 | `Makefile:8` | `lint` agregado a `.PHONY:` |
 | `Makefile:87-94` | `mmdebstrap gpg sha256sum python3` cambiados de WARN a FAIL con `((errors++))` — coincide con `build.sh:73` que los lista como REQUIRED. El mismatch de expectativas está cerrado. |
-| `Makefile:126-170` | Target `lint` creado: `shellcheck scripts/*.sh`, `yamllint mmdebstrap/bookworm.conf .github/workflows/*.yml`, `python3 -c "import json; json.load(open('magic-schema.json'))"`. Si una herramienta no está instalada, WARN y sigue. Si está y encuentra errores, FAIL. |
+| `Makefile:126-170` | Target `lint` creado: `shellcheck scripts/*.sh`, `yamllint mmdebstrap/bookworm.conf .github/workflows/*.yml`, `python3 -c "import json; json.load(open('hidra-schema.json'))"`. Si una herramienta no está instalada, WARN y sigue. Si está y encuentra errores, FAIL. |
 | `Makefile:176` | `qa: lint quick-test smoke-test` — lint ahora es prerequisito de QA. |
 
 **Pendiente (ZeroCool):** `.github/workflows/lint.yml` — workflow que corra `make lint` en cada push/PR.
@@ -487,16 +487,16 @@ make qa         # lint + quick-test + smoke-test — funciona sin pasos extra
 
 **1. Firma GPG en tarballs intermedios: verificada NUNCA.** 🔴 CRÍTICO
 - `stage1-base.sh:79-83` genera `base-$VERSION.tar.sig`
-- `stage2-magic.sh:343-344` genera `magic-$VERSION.tar.sig`
+- `stage2-hidra.sh:343-344` genera `hidra-$VERSION.tar.sig`
 - `stage3-ostree.sh:94-95` genera `layer-$VERSION.tar.sig`
 - `build.sh` solo verifica sha256 (líneas 150-158, 192-200) — NUNCA verifica `.sig`
 - `smoke-test.sh` verifica sha256 chain, attestation SHA, registry.asc GPG — pero NUNCA verifica `.sig` de tarballs
 - **Impacto:** Un atacante que comprometa el build puede reemplazar un tarball + su `.sha256` juntos. La firma GPG es el único trust anchor que ata el artefacto a la clave de build, pero nadie la verifica. Las `.sig` existen como decoración.
 
 **2. `make lint` JSON "validation" es teatro de seguridad.** 🟡 MEDIO
-- `Makefile:157` ejecuta `python3 -c "import json; json.load(open('magic-schema.json'))"`
-- Esto solo verifica que `magic-schema.json` sea *syntácticamente* JSON válido
-- NO valida `magic.yaml` contra el schema — es como verificar que la cerradura esté cerrada pero no que la llave sea correcta
+- `Makefile:157` ejecuta `python3 -c "import json; json.load(open('hidra-schema.json'))"`
+- Esto solo verifica que `hidra-schema.json` sea *syntácticamente* JSON válido
+- NO valida `hidra.yaml` contra el schema — es como verificar que la cerradura esté cerrada pero no que la llave sea correcta
 - La validación real está en `build.sh` gate (líneas 225-248) que extrae del tarball
 - `make lint` dice "JSON Schema validation" cuando es solo "JSON syntax check" — falso sentido de seguridad
 
@@ -524,7 +524,7 @@ make qa         # lint + quick-test + smoke-test — funciona sin pasos extra
 | Archivo | Línea | Cambio |
 |---------|-------|--------|
 | `scripts/build.sh` | 141, 148-161 | Stage 1: `$BASE_SIG` agregado al artifact check (`$BASE_TAR $BASE_HASH $BASE_SIG`). GPG verify post-hash con `gpg --verify $BASE_SIG $BASE_TAR`. FAIL + exit 1 si firma inválida o ausente. |
-| `scripts/build.sh` | 184, 191-204 | Stage 2: Mismo patrón. `$MAGIC_SIG` agregado al artifact check + GPG verify. |
+| `scripts/build.sh` | 184, 191-204 | Stage 2: Mismo patrón. `$HIDRA_SIG` agregado al artifact check + GPG verify. |
 | `scripts/build.sh` | 269-298 | Stage 3: Creadas `$LAYER_SIG` y `$LAYER_HASH`. Artifact check ahora incluye los 4 archivos (tar + sig + sha256 + registry). Hash verify + GPG verify. Stage 3 ya no es un simple "existe" — verifica integridad como Stages 1-2. |
 | `Makefile` | 155, 158 | `"--- JSON Schema validation ---"` → `"--- JSON syntax check ---"`. `"(JSON válido)"` → `"(syntax OK)"`. El label ahora es honesto sobre lo que el check realmente hace. |
 
@@ -584,7 +584,7 @@ sudo make deps && make qa && make build && make smoke-test
 
 | Archivo | Línea | Cambio |
 |---------|-------|--------|
-| `scripts/stage5-verify.sh` | 189-190 | `BUILD_HOST=$(hostname ...)` → `${BUILD_HOST:-spellos-builder}`. `BUILD_USER=$(whoami ...)` → `${BUILD_USER:-ci}`. Si las env vars no están definidas, defaults anónimos (`spellos-builder`/`ci`) en vez del hostname real del dev. |
+| `scripts/stage5-verify.sh` | 189-190 | `BUILD_HOST=$(hostname ...)` → `${BUILD_HOST:-hidralisk-builder}`. `BUILD_USER=$(whoami ...)` → `${BUILD_USER:-ci}`. Si las env vars no están definidas, defaults anónimos (`hidralisk-builder`/`ci`) en vez del hostname real del dev. |
 
 La attestation ya no filtra identidad del desarrollador en artefactos públicos. En CI, se setean `BUILD_HOST` y `BUILD_USER` como secretos del runner o se dejan los defaults.
 
@@ -598,7 +598,7 @@ La attestation ya no filtra identidad del desarrollador en artefactos públicos.
 1. Verifica root (apt-get requiere sudo)
 2. Si `make` está disponible y existe `Makefile`: delega en `make deps` vía `exec`
 3. Si no: `apt-get update && apt-get install` con todos los paquetes (incluyendo shellcheck + yamllint)
-4. Genera clave GPG `build@spellos.dev` si `SKIP_GPG != 1`
+4. Genera clave GPG `build@hidralisk.dev` si `SKIP_GPG != 1`
 5. Verifica que `keys/verify.pub` pase `gpg --import --dry-run`
 6. Exit 1 si `keys/verify.pub` no es GPG válido
 
@@ -621,7 +621,7 @@ sudo bash scripts/build.sh         # pipeline completo
 | Check | Resultado |
 |-------|-----------|
 | `file keys/verify.pub` | "PGP public key block" — **MENTIRA**. `file` detecta el header `-----BEGIN PGP PUBLIC KEY BLOCK-----` y reporta el tipo MIME, pero el contenido no es una clave |
-| Contenido real | Texto plano con: "SpellOS development key — reemplazar en producción", Fingerprint `0000 0000 0000 0000 0000 0000 0000 0000 0000 0000`, instrucciones `gpg --batch --quick-gen-key` |
+| Contenido real | Texto plano con: "Hidralisk development key — reemplazar en producción", Fingerprint `0000 0000 0000 0000 0000 0000 0000 0000 0000 0000`, instrucciones `gpg --batch --quick-gen-key` |
 | `gpg --import --dry-run` | No ejecutable en sandbox (gpg no instalado), pero la inspección del contenido es concluyente |
 
 **Ángulo ciego de setup-deps.sh:** El script en línea 83 ejecuta `gpg --import --dry-run keys/verify.pub` como gate. Si el sandbox no tiene `gpg`, la línea 91 hace `warn` y **sigue** — el gate no bloquea. Un dev que corra `setup-deps.sh` sin `gpg` instalado obtiene "Dependencias listas" con una clave que no existe. **Fix necesario:** si `gpg` no está disponible Y `keys/verify.pub` tiene fingerprints `0000`, fallar con `exit 1` y mensaje claro. Esto no está en el scope de este turno pero lo registro.
@@ -630,7 +630,7 @@ sudo bash scripts/build.sh         # pipeline completo
 
 | Fix | Estado | Verificación |
 |-----|--------|--------------|
-| `stage5-verify.sh:189-190` — env vars anónimas | ✅ Confirmado | `${BUILD_HOST:-spellos-builder}`, `${BUILD_USER:-ci}` — leak de privacidad cerrado |
+| `stage5-verify.sh:189-190` — env vars anónimas | ✅ Confirmado | `${BUILD_HOST:-hidralisk-builder}`, `${BUILD_USER:-ci}` — leak de privacidad cerrado |
 | `scripts/setup-deps.sh` — existencia | ✅ Confirmado | Script completo, chmod +x implícito, lógica make/no-make correcta |
 | `NOTAS.md` — Turno 16 registrado | ✅ Confirmado | Líneas 579-611 |
 
@@ -641,7 +641,7 @@ sudo bash scripts/build.sh         # pipeline completo
 | Stage 1-3 GPG gates | ✅ Cerrado (Turno 15) | build.sh verifica .sig de cada tarball |
 | Stage 4 ISO | ✅ Código listo | stage4-iso.sh usa mkosi con fallback xorriso |
 | Stage 5 verify + sign | ✅ Cerrado | GPG + cosign + attestation SLSA + env vars anónimas |
-| smoke-test | ✅ Cerrado | attestation .sig verificado, checksum chain, magic bytes |
+| smoke-test | ✅ Cerrado | attestation .sig verificado, checksum chain, hidra bytes |
 | keys/verify.pub | ⚠️ Placeholder | Necesita `make deps` o `setup-deps.sh` para generar clave real |
 | setup-deps.sh | ⚠️ Gate parcial | No bloquea si gpg no está instalado |
 

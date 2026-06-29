@@ -15,12 +15,12 @@ model/hardening, Ultron · integración). La mesa se borró de la DB; los archiv
 Un **whitepaper + esqueleto de build de buena calidad**, NO una distro.
 
 - **Diseño:** sólido. Inmutable por capas (ostree + overlayfs + Btrfs), compatible `.deb`,
-  orquestador declarativo (`magic.yaml`), seguridad por arquitectura (dm-verity, TPM-PCR binding,
+  orquestador declarativo (`hidra.yaml`), seguridad por arquitectura (dm-verity, TPM-PCR binding,
   firma obligatoria, audit log append-only, SLSA L3). Threat model con 11 vectores cruzados
   contra mitigaciones en `ACTION_PLAN.md`.
 - **Implementación:** ~10%. Los `scripts/stageN-*.sh` (mmdebstrap → ostree → ISO) son andamiaje
-  correcto, pero **el corazón no existe todavía**: `grimoire` (orquestador), `magic-apt` (gestor
-  atómico) y `magic-init` (init de verificación por capas) son conceptos en YAML, no binarios.
+  correcto, pero **el corazón no existe todavía**: `overmind` (orquestador), `hidra-apt` (gestor
+  atómico) y `hidra-init` (init de verificación por capas) son conceptos en YAML, no binarios.
   Lo más difícil es justo lo que falta.
 
 ## 2. Lo crítico ANTES de seguir
@@ -33,9 +33,9 @@ orquestador/init propios, mapear cada pieza contra lo que ya existe y decidir
 
 | Pieza inventada acá | Ya existe (madurо) | Decisión a tomar |
 |---|---|---|
-| `grimoire` + `magic.yaml` (config declarativa) | **Butane/Ignition**, cloud-init | ¿Es un wrapper de UX o algo nuevo de verdad? |
+| `overmind` + `hidra.yaml` (config declarativa) | **Butane/Ignition**, cloud-init | ¿Es un wrapper de UX o algo nuevo de verdad? |
 | Init de capas + rootfs inmutable + `.deb` encima | **bootc** / **ostree native containers** (camino de Fedora/RHEL), **systemd-sysext/confext** | bootc te da el 70% del trabajo de bajo nivel ya resuelto y mantenido |
-| `magic-apt` (capas atómicas sobre apt) | `rpm-ostree`, `apt` + overlay, **bootc** layering | ¿overlay propio o el modelo de bootc? |
+| `hidra-apt` (capas atómicas sobre apt) | `rpm-ostree`, `apt` + overlay, **bootc** layering | ¿overlay propio o el modelo de bootc? |
 | Firma/verificación de capas | **dm-verity + composefs**, fs-verity, **cosign/Sigstore + Rekor** | usar los de upstream, no firmar a mano |
 | Reproducible build / attestation | **SLSA**, `mkosi` (ya genera la imagen), in-toto | el diseño ya apunta acá — bien |
 
@@ -48,36 +48,34 @@ orquestador/init propios, mapear cada pieza contra lo que ya existe y decidir
 ¿bootea en QEMU el rootfs base ostree que generan los scripts actuales? Eso convierte el 90%
 de teoría en algo tangible y dice rápido si vale la pena.
 
-### 2.2 Rename obligatorio 🐝
+### 2.2 Rename — RESUELTO ✅ (2026-06-29)
 
-Dos motivos:
-1. **Colisión de marca:** `spell-os.com` ya existe (sitio React/Vercel — auditado en la mesa-182
-   del enjambre). Si ese dominio no es nuestro, "SpellOS" está tomado.
+**Nombre elegido: `Hidralisk OS`** (con `i`, la grafía de la marca de fede — comparte ADN con la
+shell OS `hidralisk` del ecosistema, a propósito). Motivos del rename desde "SpellOS":
+1. **Colisión de marca:** `spell-os.com` ya existía (sitio React/Vercel — auditado en la mesa-182).
 2. **Coherencia con el ecosistema HIDRA:** todo tiene ADN Zerg (hidralisk, hidr4lisk, nodos HIDRA,
-   sillas del enjambre = broods). La distro tiene que **enganchar con los Zerg**, no con magia.
+   sillas del enjambre = broods). La distro engancha con los Zerg, no con magia.
 
-El tema "magia/spell/grimoire" hay que migrarlo a tema Zerg. **Restricción (fede, 2026-06-29):
-el nombre tiene que tener que ver con CAPAS** — que es el corazón del diseño (base/system/user/
-session). Y el Zerg engancha perfecto: su blindaje es un **caparazón hecho de capas de quitina**
-(en StarCraft la mejora de armadura terrestre Zerg se llama literalmente **Carapace**: cada
-mejora = otra capa). Candidatos ordenados por encaje con "capas":
+Se migró todo el tema "magia/spell/grimoire" al **esquema A: `hidra*` + Overmind**. Mapeo aplicado:
 
-| Nombre | Conexión con CAPAS + Zerg | Nota |
-|---|---|---|
-| **Carapace** (recomendado) | Caparazón Zerg = armadura **en capas** de quitina; en SC es el nombre de la mejora de armadura. Base inmutable readonly = la carapace; cada overlay = otra placa. "Seguridad por arquitectura" cae redonda. | verificar dominio |
-| **Chitin** | La **sustancia** de cada capa del caparazón. Cada commit ostree = una placa de quitina. Corto/técnico. | `ChitinOS` |
-| **Creep** | Sustrato Zerg que se expande **en capa** = la capa base sobre la que crece todo. | "creep" suena raro en inglés |
-| **Molt** | El Zerg **muda** el caparazón para crecer una capa nueva → rollback = "molt back". | mejor como **verbo de comando** que como nombre |
+| Antes | Ahora |
+|---|---|
+| `SpellOS` / `spellos` (display) | **Hidralisk OS** / `hidralisk` (token corto, sin espacio, para paths/ISO) |
+| `grimoire` (orquestador declarativo) | **overmind** (el Overmind dirige al enjambre = orquesta las capas) |
+| `magic-apt` / `magic-init` / `magic-rollback` | `hidra-apt` / `hidra-init` / `hidra-rollback` |
+| `magic.yaml` / `magic-schema.json` | `hidra.yaml` / `hidra-schema.json` |
+| `/etc/magic/` · `/var/log/magic/` | `/etc/hidra/` · `/var/log/hidra/` |
+| `magic:` (raíz del YAML) | `hidra:` |
+| archivo `scripts/stage2-magic.sh` | `scripts/stage2-hidra.sh` |
+| `MagicLinux` (residuo viejo) | `Hidralisk` |
 
-Mapeo de renombres si se elige **Carapace** (+ `molt` como verbo de capa):
-- `SpellOS` → **Carapace**
-- `grimoire` (orquestador) → **overmind** (el Overmind dirige al enjambre = orquesta las capas)
-- `magic.yaml` → `carapace.yaml` / `layers.yaml`
-- `magic-apt` → `molt-apt`; comandos de capa: `molt apply` / `molt rollback`
-- verbos "spell/cast" → "morph" / "molt"
-
-> **Pendiente humano (fede):** elegir nombre + verificar dominio/marca libre, y recién ahí hacer
-> el rename global (hay precedente: ya se hizo `MagicLinux → SpellOS` en 1 commit, ~34 ocurrencias).
+> **Nota de token:** el display es "Hidralisk OS" (con espacio) solo en títulos; el identificador
+> en código/paths/ISO es `Hidralisk`/`hidralisk` (sin espacio) para no romper nombres de archivo
+> ni labels. Patrón "Fedora" vs "Fedora Linux".
+>
+> **Pendiente humano (fede):** verificar que el dominio/marca que se use de placeholder
+> (`hidralisk.dev`, `github.com/hidralisk/hidralisk` en la attestation SLSA) sea el real cuando se
+> publique. `keys/verify.pub` se dejó intacto a propósito (no tocar la clave GPG con sed).
 
 ### 2.3 TPM-PCR binding: ojo
 

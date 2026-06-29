@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# setup-deps.sh — Instalación autónoma de dependencias para SpellOS
+# setup-deps.sh — Instalación autónoma de dependencias para Hidralisk
 #
 # Si make está disponible, delega en `make deps`.
 # Si no, ejecuta los comandos directamente.
@@ -7,14 +7,14 @@
 # Uso: sudo bash scripts/setup-deps.sh
 #
 # Variables de entorno:
-#   GPG_KEY    — ID de clave GPG (default: build@spellos.dev)
+#   GPG_KEY    — ID de clave GPG (default: build@hidralisk.dev)
 #   SKIP_GPG   — si=1, salta generación de clave GPG
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-GPG_KEY="${GPG_KEY:-build@spellos.dev}"
+GPG_KEY="${GPG_KEY:-build@hidralisk.dev}"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -26,7 +26,7 @@ fail() { echo -e "  ${RED}✗ FAIL${NC}: $1" >&2; }
 warn() { echo -e "  ${YELLOW}⚠ WARN${NC}: $1"; }
 
 echo "╔══════════════════════════════════════════════════════════╗"
-echo "║       SpellOS Dependency Setup — setup-deps.sh          ║"
+echo "║       Hidralisk Dependency Setup — setup-deps.sh          ║"
 echo "╚══════════════════════════════════════════════════════════╝"
 echo ""
 

@@ -3,12 +3,12 @@ SHELL := /bin/bash
 
 VERSION ?= snapshot-$(shell date +%Y%m%d)
 OUTDIR ?= $(CURDIR)/output
-ISO ?= $(shell ls -t $(OUTDIR)/SpellOS-*.iso 2>/dev/null | head -1)
+ISO ?= $(shell ls -t $(OUTDIR)/Hidralisk-*.iso 2>/dev/null | head -1)
 
 .PHONY: build deps lint quick-test smoke-test qa test-vm clean
 
 build:
-	@echo "=== SpellOS Build Pipeline ==="
+	@echo "=== Hidralisk Build Pipeline ==="
 	@mkdir -p "$(OUTDIR)"
 	VERSION="$(VERSION)" OUTDIR="$(OUTDIR)" bash scripts/build.sh
 
@@ -32,14 +32,14 @@ deps:
 		yamllint
 	@echo "=== Setup clave de desarrollo ==="
 	@if command -v gpg &>/dev/null; then
-		gpg --batch --quick-gen-key build@spellos.dev default default never 2>/dev/null || true
-		gpg --export --armor build@spellos.dev > keys/verify.pub 2>/dev/null || true
-		echo "Clave GPG build@spellos.dev generada"
+		gpg --batch --quick-gen-key build@hidralisk.dev default default never 2>/dev/null || true
+		gpg --export --armor build@hidralisk.dev > keys/verify.pub 2>/dev/null || true
+		echo "Clave GPG build@hidralisk.dev generada"
 	fi
 	@echo "=== Dependencias listas ==="
 
 quick-test:
-	@echo "=== SpellOS Quick Test ==="
+	@echo "=== Hidralisk Quick Test ==="
 	@errors=0
 	@echo "--- 1. Estructura de directorios ---"
 	@for d in mmdebstrap scripts keys mkosi/extra; do
@@ -52,7 +52,7 @@ quick-test:
 	done
 	@echo ""
 	@echo "--- 2. Scripts existentes y ejecutables ---"
-	@for s in scripts/stage1-base.sh scripts/stage2-magic.sh scripts/stage3-ostree.sh scripts/stage4-iso.sh scripts/stage5-verify.sh scripts/build.sh; do
+	@for s in scripts/stage1-base.sh scripts/stage2-hidra.sh scripts/stage3-ostree.sh scripts/stage4-iso.sh scripts/stage5-verify.sh scripts/build.sh; do
 		if [ -x "$$s" ]; then
 			echo "  OK: $$s"
 		elif [ -f "$$s" ]; then
@@ -76,10 +76,10 @@ quick-test:
 	@echo ""
 	@echo "--- 4. JSON Schema válido ---"
 	@if command -v python3 &>/dev/null; then
-		if python3 -c "import json; json.load(open('magic-schema.json'))" 2>/dev/null; then
-			echo "  OK: magic-schema.json (JSON válido)"
+		if python3 -c "import json; json.load(open('hidra-schema.json'))" 2>/dev/null; then
+			echo "  OK: hidra-schema.json (JSON válido)"
 		else
-			echo "  FAIL: magic-schema.json (JSON inválido)" >&2
+			echo "  FAIL: hidra-schema.json (JSON inválido)" >&2
 			((errors++))
 		fi
 	else
@@ -126,7 +126,7 @@ quick-test:
 	fi
 
 lint:
-	@echo "=== SpellOS Lint ==="
+	@echo "=== Hidralisk Lint ==="
 	@errors=0
 	@echo "--- shellcheck ---"
 	@if command -v shellcheck &>/dev/null; then
@@ -154,10 +154,10 @@ lint:
 	@echo ""
 	@echo "--- JSON syntax check ---"
 	@if command -v python3 &>/dev/null; then
-		if python3 -c "import json; json.load(open('magic-schema.json'))" 2>/dev/null; then
-			echo "  OK: magic-schema.json (syntax OK)"
+		if python3 -c "import json; json.load(open('hidra-schema.json'))" 2>/dev/null; then
+			echo "  OK: hidra-schema.json (syntax OK)"
 		else
-			echo "  FAIL: magic-schema.json (JSON inválido)" >&2
+			echo "  FAIL: hidra-schema.json (JSON inválido)" >&2
 			((errors++))
 		fi
 	else
@@ -172,7 +172,7 @@ lint:
 	fi
 
 smoke-test:
-	@echo "=== SpellOS Smoke Test ==="
+	@echo "=== Hidralisk Smoke Test ==="
 	VERSION="$(VERSION)" OUTDIR="$(OUTDIR)" bash scripts/smoke-test.sh
 
 qa: lint quick-test smoke-test

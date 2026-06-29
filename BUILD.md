@@ -1,4 +1,4 @@
-# Build Pipeline de SpellOS
+# Build Pipeline de Hidralisk
 
 ## Stack de herramientas
 
@@ -16,21 +16,21 @@
 │  mmdebstrap --variant=custom bookworm base.tar      │
 │  └── resultado: rootfs Debian mínimo firmado         │
 ├─────────────────────────────────────────────────────┤
-│  Fase 2: Magic layer                                │
+│  Fase 2: Hidra layer                                │
 │  mkosi --distribution=debian --format=disk          │
-│  └── inyecta magic-init, grimoire, magic-apt        │
+│  └── inyecta hidra-init, overmind, hidra-apt        │
 ├─────────────────────────────────────────────────────┤
 │  Fase 3: ostree commit                              │
-│  magic-build commit --layer base --sign             │
+│  hidra-build commit --layer base --sign             │
 │  └── artifact: capa ostree firmada (.tar + .sig)    │
 ├─────────────────────────────────────────────────────┤
 │  Fase 4: Hybrid ISO                                 │
 │  mkosi --format=iso --hybrid                        │
-│  └── artifact: SpellOS-<version>.iso              │
+│  └── artifact: Hidralisk-<version>.iso              │
 ├─────────────────────────────────────────────────────┤
 │  Fase 5: Verification                               │
-│  magic-verify --iso SpellOS-<version>.iso        │
-│  magic-verify --signature ./*.sig                   │
+│  hidra-verify --iso Hidralisk-<version>.iso        │
+│  hidra-verify --signature ./*.sig                   │
 │  └── resultado: PASS/FAIL + hash manifest            │
 └─────────────────────────────────────────────────────┘
 ```
@@ -38,7 +38,7 @@
 ## Estructura del repositorio
 
 ```
-spellos/
+hidralisk/
 ├── .github/workflows/build.yml
 ├── mmdebstrap/
 │   └── bookworm.conf        → configuración de mmdebstrap
@@ -46,12 +46,12 @@ spellos/
 │   ├── mkosi.conf           → configuración general
 │   ├── mkosi.conf.d/
 │   │   ├── 10-debian.conf
-│   │   ├── 20-magic.conf
+│   │   ├── 20-hidra.conf
 │   │   └── 30-iso.conf
 │   └── extra/
-│       ├── magic-init
-│       ├── grimoire
-│       └── magic-apt
+│       ├── hidra-init
+│       ├── overmind
+│       └── hidra-apt
 ├── keys/
 │   ├── verify.pub           → clave pública de verificación (privada NUNCA en disco)
 │   └── # La clave privada de firma vive en HSM externo (YubiKey, Nitrokey, o cloud HSM).
@@ -59,7 +59,7 @@ spellos/
 │       # identidad OIDC (GitHub OIDC → Sigstore) o firma delegada al HSM vía PKCS#11.
 └── scripts/
     ├── stage1-base.sh
-    ├── stage2-magic.sh
+    ├── stage2-hidra.sh
     ├── stage3-ostree.sh
     ├── stage4-iso.sh
     └── stage5-verify.sh
@@ -70,7 +70,7 @@ spellos/
 El pipeline se ejecuta en cada tag semver o push a `stable/`:
 
 ```yaml
-name: Build SpellOS ISO
+name: Build Hidralisk ISO
 on:
   push:
     tags: ["v*"]
@@ -90,13 +90,13 @@ jobs:
       - uses: actions/checkout@v4
       - run: sudo apt install mmdebstrap mkosi ostree
       - run: ./scripts/stage1-base.sh
-      - run: ./scripts/stage2-magic.sh
+      - run: ./scripts/stage2-hidra.sh
       - run: ./scripts/stage3-ostree.sh
       - run: ./scripts/stage4-iso.sh
       - run: ./scripts/stage5-verify.sh
       - uses: actions/upload-artifact@v4
         with:
-          name: SpellOS-${{ github.ref_name }}.iso
+          name: Hidralisk-${{ github.ref_name }}.iso
           path: output/*.iso
 ```
 
@@ -109,12 +109,12 @@ Cada stage produce un manifest firmado:
 # La clave privada nunca está en el disco del runner
 cosign sign-blob \
   --key hsm://<provider>/<key-id> \
-  --output-signature SpellOS-1.0.iso.sig \
-  SpellOS-1.0.iso
+  --output-signature Hidralisk-1.0.iso.sig \
+  Hidralisk-1.0.iso
 
 # Verificar
-magic-verify --iso SpellOS-1.0.iso                \
-  --signature SpellOS-1.0.iso.sig                 \
+hidra-verify --iso Hidralisk-1.0.iso                \
+  --signature Hidralisk-1.0.iso.sig                 \
   --public-key keys/verify.pub
 ```
 
@@ -127,14 +127,14 @@ Cada build produce un attestation siguiendo SLSA Level 3:
 ```bash
 # Generar provenance (SLSA)
 slsa-generator-generic \
-  --artifact SpellOS-<version>.iso \
+  --artifact Hidralisk-<version>.iso \
   --output attestation.intoto.jsonl
 
 # Firmar attestation con la misma identidad OIDC
 cosign attest \
   --predicate attestation.intoto.jsonl \
   --type slsa.dev/provenance/v1 \
-  SpellOS-<version>.iso
+  Hidralisk-<version>.iso
 
 # Publicar transparency log
 cosign upload \
@@ -144,7 +144,7 @@ cosign upload \
 # Verificable por cualquiera:
 # cosign verify-attestation --type slsa.dev/provenance/v1 \
 #   --certificate-identity <expected-oidc> \
-#   SpellOS-<version>.iso
+#   Hidralisk-<version>.iso
 ```
 
 El manifest de build incluye: fuente del commit, parámetros de mmdebstrap/mkosi, hash de todos los inputs (deb packages, scripts, configs), y output hash de la ISO. Cualquier persona puede reproducir el build y comparar hashes.

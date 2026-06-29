@@ -7,19 +7,19 @@
 # un transparency log (Rekor).
 #
 # Input:
-#   $OUTDIR/SpellOS-$VERSION.iso       — ISO generada por stage4
-#   $OUTDIR/SpellOS-$VERSION.iso.sha256 — checksum
+#   $OUTDIR/Hidralisk-$VERSION.iso       — ISO generada por stage4
+#   $OUTDIR/Hidralisk-$VERSION.iso.sha256 — checksum
 #   keys/verify.pub                    — clave pública de verificación
 #
 # Output:
 #   $OUTDIR/attestation.intoto.jsonl   — SLSA provenance attestation
-#   $OUTDIR/SpellOS-$VERSION.iso.sig   — firma de la ISO (si cosign disponible)
+#   $OUTDIR/Hidralisk-$VERSION.iso.sig   — firma de la ISO (si cosign disponible)
 #   Reporte de verificación en stdout
 #
 # Variables de entorno (o defaults):
 #   OUTDIR    — directorio de salida (default: ./output)
 #   VERSION   — versión del build (default: snapshot-$(date +%Y%m%d))
-#   GPG_KEY   — ID de clave GPG (default: build@spellos.dev)
+#   GPG_KEY   — ID de clave GPG (default: build@hidralisk.dev)
 
 set -euo pipefail
 
@@ -28,10 +28,10 @@ REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 OUTDIR="${OUTDIR:-$REPO_DIR/output}"
 VERSION="${VERSION:-snapshot-$(date +%Y%m%d)}"
-GPG_KEY="${GPG_KEY:-build@spellos.dev}"
+GPG_KEY="${GPG_KEY:-build@hidralisk.dev}"
 
-ISO_FILE="$OUTDIR/SpellOS-$VERSION.iso"
-ISO_HASH="$OUTDIR/SpellOS-$VERSION.iso.sha256"
+ISO_FILE="$OUTDIR/Hidralisk-$VERSION.iso"
+ISO_HASH="$OUTDIR/Hidralisk-$VERSION.iso.sha256"
 PUBLIC_KEY="$REPO_DIR/keys/verify.pub"
 
 # --- Colores para output ---
@@ -49,7 +49,7 @@ fail() { echo -e "  ${RED}✗ FAIL${NC}: $1"; ((FAIL++)); }
 warn() { echo -e "  ${YELLOW}⚠ WARN${NC}: $1"; ((WARN++)); }
 
 echo "╔══════════════════════════════════════════════════════════╗"
-echo "║       SpellOS ISO Verification — stage5-verify.sh       ║"
+echo "║       Hidralisk ISO Verification — stage5-verify.sh       ║"
 echo "╚══════════════════════════════════════════════════════════╝"
 echo ""
 echo "ISO:     $ISO_FILE"
@@ -108,12 +108,12 @@ else
     fi
 fi
 
-# Verificar que es una ISO válida (magic bytes)
-MAGIC=$(od -A n -t x1 -N 5 "$ISO_FILE" 2>/dev/null | tr -d ' \n' || echo "")
-if echo "$MAGIC" | grep -qi "4549444601"; then
-    pass "Magic bytes ELF detectados (ISO híbrida UEFI)"
-elif [ -n "$MAGIC" ]; then
-    warn "Magic bytes inesperados: $MAGIC — verificar formato"
+# Verificar que es una ISO válida (hidra bytes)
+HIDRA=$(od -A n -t x1 -N 5 "$ISO_FILE" 2>/dev/null | tr -d ' \n' || echo "")
+if echo "$HIDRA" | grep -qi "4549444601"; then
+    pass "Hidra bytes ELF detectados (ISO híbrida UEFI)"
+elif [ -n "$HIDRA" ]; then
+    warn "Hidra bytes inesperados: $HIDRA — verificar formato"
 fi
 echo ""
 
@@ -138,8 +138,8 @@ echo ""
 
 # --- 3. Verificar con cosign (SLSA/Sigstore) ---
 echo "═══ Fase 3: Firma Sigstore/cosign ═══"
-COSIGN_SIG="$OUTDIR/SpellOS-$VERSION.iso.sig"
-COSIGN_CERT="$OUTDIR/SpellOS-$VERSION.iso.cert"
+COSIGN_SIG="$OUTDIR/Hidralisk-$VERSION.iso.sig"
+COSIGN_CERT="$OUTDIR/Hidralisk-$VERSION.iso.cert"
 
 if [ ! -f "$COSIGN_SIG" ]; then
     warn "Firma cosign no encontrada: $COSIGN_SIG"
@@ -186,7 +186,7 @@ ISO_DIGEST=$(sha256sum "$ISO_FILE" | cut -d' ' -f1)
 # Recopilar metadatos del build
 GIT_COMMIT=$(cd "$REPO_DIR" && git rev-parse HEAD 2>/dev/null || echo "unknown")
 GIT_REPO=$(cd "$REPO_DIR" && git remote get-url origin 2>/dev/null || echo "unknown")
-BUILD_HOST="${BUILD_HOST:-spellos-builder}"
+BUILD_HOST="${BUILD_HOST:-hidralisk-builder}"
 BUILD_USER="${BUILD_USER:-ci}"
 BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 BUILD_TOOL="stage5-verify.sh"
@@ -196,7 +196,7 @@ OSTREE_VERSION=$(ostree --version 2>/dev/null | head -1 || echo "unknown")
 
 # Generar attestation en formato in-toto
 cat > "$ATTESTATION" <<ATTESTATION
-{"_type":"https://in-toto.io/Statement/v0.1","subject":[{"name":"SpellOS-$VERSION.iso","digest":{"sha256":"$ISO_DIGEST"}}],"predicateType":"https://slsa.dev/provenance/v1","predicate":{"builder":{"id":"https://github.com/spellos/spellos"},"buildType":"https://spellos.dev/build/v1","invocation":{"configSource":{"uri":"$GIT_REPO","digest":{"gitCommit":"$GIT_COMMIT"},"entryPoint":"scripts/stage5-verify.sh"}},"metadata":{"buildInvocationId":"spellos-$VERSION-$(date +%s)","buildStartedOn":"$BUILD_DATE","buildFinishedOn":"$BUILD_DATE","completeness":{"materials":true,"environment":true,"inputs":true,"outputs":true},"reproducible":true},"materials":[{"uri":"$GIT_REPO","digest":{"gitCommit":"$GIT_COMMIT"}}],"buildConfig":{"version":"1.0","steps":["mmdebstrap → base rootfs","mkosi → SpellOS layer","ostree → immutable commit","mkosi/xorriso → hybrid ISO","verify → SLSA attestation"],"tools":{"mmdebstrap":"$MMDEBSTRAP_VERSION","mkosi":"$MKOSI_VERSION","ostree":"$OSTREE_VERSION"},"builder":{"host":"$BUILD_HOST","user":"$BUILD_USER","arch":"$(uname -m)","kernel":"$(uname -r)"}}}}
+{"_type":"https://in-toto.io/Statement/v0.1","subject":[{"name":"Hidralisk-$VERSION.iso","digest":{"sha256":"$ISO_DIGEST"}}],"predicateType":"https://slsa.dev/provenance/v1","predicate":{"builder":{"id":"https://github.com/hidralisk/hidralisk"},"buildType":"https://hidralisk.dev/build/v1","invocation":{"configSource":{"uri":"$GIT_REPO","digest":{"gitCommit":"$GIT_COMMIT"},"entryPoint":"scripts/stage5-verify.sh"}},"metadata":{"buildInvocationId":"hidralisk-$VERSION-$(date +%s)","buildStartedOn":"$BUILD_DATE","buildFinishedOn":"$BUILD_DATE","completeness":{"materials":true,"environment":true,"inputs":true,"outputs":true},"reproducible":true},"materials":[{"uri":"$GIT_REPO","digest":{"gitCommit":"$GIT_COMMIT"}}],"buildConfig":{"version":"1.0","steps":["mmdebstrap → base rootfs","mkosi → Hidralisk layer","ostree → immutable commit","mkosi/xorriso → hybrid ISO","verify → SLSA attestation"],"tools":{"mmdebstrap":"$MMDEBSTRAP_VERSION","mkosi":"$MKOSI_VERSION","ostree":"$OSTREE_VERSION"},"builder":{"host":"$BUILD_HOST","user":"$BUILD_USER","arch":"$(uname -m)","kernel":"$(uname -r)"}}}}
 ATTESTATION
 
 if [ -f "$ATTESTATION" ]; then

@@ -6,17 +6,17 @@
 # hardware real o VM.
 #
 # Input:
-#   $OUTDIR/magic-$VERSION.tar  — rootfs con capa SpellOS (stage2 output)
+#   $OUTDIR/hidra-$VERSION.tar  — rootfs con capa Hidralisk (stage2 output)
 #   $OSTREE_REPO/               — repositorio ostree (stage3 output)
 #
 # Output:
-#   $OUTDIR/SpellOS-$VERSION.iso  — ISO híbrida booteable
-#   $OUTDIR/SpellOS-$VERSION.iso.sha256
+#   $OUTDIR/Hidralisk-$VERSION.iso  — ISO híbrida booteable
+#   $OUTDIR/Hidralisk-$VERSION.iso.sha256
 #
 # Variables de entorno (o defaults):
 #   OUTDIR    — directorio de salida (default: ./output)
 #   VERSION   — versión del build (default: snapshot-$(date +%Y%m%d))
-#   GPG_KEY   — ID de clave GPG para firmar (default: build@spellos.dev)
+#   GPG_KEY   — ID de clave GPG para firmar (default: build@hidralisk.dev)
 
 set -euo pipefail
 
@@ -25,13 +25,13 @@ REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 OUTDIR="${OUTDIR:-$REPO_DIR/output}"
 VERSION="${VERSION:-snapshot-$(date +%Y%m%d)}"
-GPG_KEY="${GPG_KEY:-build@spellos.dev}"
+GPG_KEY="${GPG_KEY:-build@hidralisk.dev}"
 
-ROOTFS_TAR="$OUTDIR/magic-$VERSION.tar"
+ROOTFS_TAR="$OUTDIR/hidra-$VERSION.tar"
 
 if [ ! -f "$ROOTFS_TAR" ]; then
     echo "[FATAL] No se encuentra rootfs: $ROOTFS_TAR"
-    echo "        Ejecutar stage1-base.sh + stage2-magic.sh + stage3-ostree.sh primero."
+    echo "        Ejecutar stage1-base.sh + stage2-hidra.sh + stage3-ostree.sh primero."
     exit 1
 fi
 
@@ -61,7 +61,7 @@ else
     exit 1
 fi
 
-echo "[STAGE-4] Generando ISO híbrida SpellOS $VERSION..."
+echo "[STAGE-4] Generando ISO híbrida Hidralisk $VERSION..."
 
 # --- Preparar configuración mkosi ---
 MKOSI_DIR="$REPO_DIR/mkosi"
@@ -86,7 +86,7 @@ Repositories=main contrib non-free-firmware
 
 [Output]
 OutputDirectory=../output
-ImageId=SpellOS
+ImageId=Hidralisk
 ImageVersion=1.0
 Format=iso
 Bootable=yes
@@ -99,7 +99,7 @@ Bootable=yes
 BootLoader=grub
 
 [Content]
-RootDirectory=../output/magic-rootfs
+RootDirectory=../output/hidra-rootfs
 Bootable=yes
 Stamp=touched
 # Package directories are overlaid onto the root filesystem
@@ -122,7 +122,7 @@ Packages=
     jq
 
 SkeletonTrees=
-    ../output/magic-rootfs
+    ../output/hidra-rootfs
 
 # Clean up after build
 RemovePackages=
@@ -143,10 +143,10 @@ Repositories=main contrib non-free-firmware
 DEBCONF
 fi
 
-if [ ! -f "$CONF_D/20-magic.conf" ]; then
-    cat > "$CONF_D/20-magic.conf" <<'MAGICCONF'
+if [ ! -f "$CONF_D/20-hidra.conf" ]; then
+    cat > "$CONF_D/20-hidra.conf" <<'HIDRACONF'
 [Content]
-# SpellOS-specific packages
+# Hidralisk-specific packages
 Packages=
     btrfs-progs
     ostree
@@ -155,7 +155,7 @@ Packages=
     gpg
     jq
     curl
-MAGICCONF
+HIDRACONF
 fi
 
 if [ ! -f "$CONF_D/30-iso.conf" ]; then
@@ -173,7 +173,7 @@ ISOCONF
 fi
 
 # --- Extraer rootfs temporal para mkosi ---
-EXTRACT_DIR=$(mktemp -d /tmp/spellos-mkosi-XXXXXX)
+EXTRACT_DIR=$(mktemp -d /tmp/hidralisk-mkosi-XXXXXX)
 trap 'rm -rf "$EXTRACT_DIR"' EXIT
 
 echo "[STAGE-4] Extrayendo rootfs para mkosi..."
@@ -181,62 +181,62 @@ tar -xpf "$ROOTFS_TAR" -C "$EXTRACT_DIR"
 
 # mkosi espera RootDirectory como directorio, no tarball
 # Apuntamos la config al directorio extraído
-MAGIC_ROOTFS="$OUTDIR/magic-rootfs"
-rm -rf "$MAGIC_ROOTFS"
-mv "$EXTRACT_DIR" "$MAGIC_ROOTFS"
+HIDRA_ROOTFS="$OUTDIR/hidra-rootfs"
+rm -rf "$HIDRA_ROOTFS"
+mv "$EXTRACT_DIR" "$HIDRA_ROOTFS"
 
 # --- Generar GRUB config para ISO ---
 echo "[STAGE-4] Configurando GRUB para ISO híbrida..."
-GRUB_DIR="$MAGIC_ROOTFS/boot/grub"
+GRUB_DIR="$HIDRA_ROOTFS/boot/grub"
 mkdir -p "$GRUB_DIR"
 
 cat > "$GRUB_DIR/grub.cfg" <<'GRUB'
-# SpellOS GRUB Configuration
+# Hidralisk GRUB Configuration
 set default=0
 set timeout=5
 set gfxmode=auto
 
-menuentry "SpellOS" {
-    linux /boot/vmlinuz root=LABEL=SPELLOS ro quiet splash
+menuentry "Hidralisk" {
+    linux /boot/vmlinuz root=LABEL=HIDRALISK ro quiet splash
     initrd /boot/initrd.img
 }
 
-menuentry "SpellOS (recovery)" {
-    linux /boot/vmlinuz root=LABEL=SPELLOS ro single
+menuentry "Hidralisk (recovery)" {
+    linux /boot/vmlinuz root=LABEL=HIDRALISK ro single
     initrd /boot/initrd.img
 }
 
-menuentry "SpellOS (verbose)" {
-    linux /boot/vmlinuz root=LABEL=SPELLOS ro verbose debug
+menuentry "Hidralisk (verbose)" {
+    linux /boot/vmlinuz root=LABEL=HIDRALISK ro verbose debug
     initrd /boot/initrd.img
 }
 GRUB
 
 # --- Generar systemd-boot config (UEFI) ---
-BOOT_DIR="$MAGIC_ROOTFS/boot/efi/loader/entries"
+BOOT_DIR="$HIDRA_ROOTFS/boot/efi/loader/entries"
 mkdir -p "$BOOT_DIR"
 
-cat > "$BOOT_DIR/spellos.conf" <<'BOOTCONF'
-title   SpellOS
+cat > "$BOOT_DIR/hidralisk.conf" <<'BOOTCONF'
+title   Hidralisk
 linux   /vmlinuz
-options root=LABEL=SPELLOS ro quiet splash
+options root=LABEL=HIDRALISK ro quiet splash
 initrd  /initrd.img
 BOOTCONF
 
-cat > "$BOOT_DIR/spellos-recovery.conf" <<'BOOTRECOV'
-title   SpellOS (recovery)
+cat > "$BOOT_DIR/hidralisk-recovery.conf" <<'BOOTRECOV'
+title   Hidralisk (recovery)
 linux   /vmlinuz
-options root=LABEL=SPELLOS ro single
+options root=LABEL=HIDRALISK ro single
 initrd  /initrd.img
 BOOTRECOV
 
 # --- Ejecutar generación de ISO ---
-ISO_OUTPUT="$OUTDIR/SpellOS-$VERSION.iso"
+ISO_OUTPUT="$OUTDIR/Hidralisk-$VERSION.iso"
 
 if $HAS_MKOSI; then
     echo "[STAGE-4] Generando ISO con mkosi..."
     mkosi \
-        --directory="$MAGIC_ROOTFS" \
+        --directory="$HIDRA_ROOTFS" \
         --output="$ISO_OUTPUT" \
         --format=iso \
         --bootable=yes \
@@ -247,7 +247,7 @@ if $HAS_MKOSI; then
                 HAS_MKOSI=false
             else
                 echo "[FATAL] mkosi falló y xorriso no está disponible."
-                rm -rf "$MAGIC_ROOTFS"
+                rm -rf "$HIDRA_ROOTFS"
                 exit 1
             fi
         }
@@ -255,7 +255,7 @@ fi
 
 if ! $HAS_MKOSI && $HAS_XORRISO; then
     echo "[STAGE-4] Generando ISO con xorriso..."
-    ISO_LABEL="SPELLOS_$(echo "$VERSION" | tr '-' '_')"
+    ISO_LABEL="HIDRALISK_$(echo "$VERSION" | tr '-' '_')"
     xorriso -as mkisofs \
         -r -J \
         -joliet-long \
@@ -272,15 +272,15 @@ if ! $HAS_MKOSI && $HAS_XORRISO; then
         -no-emul-boot \
         -isohybrid-gpt-basdat \
         -o "$ISO_OUTPUT" \
-        "$MAGIC_ROOTFS" 2>&1 || {
+        "$HIDRA_ROOTFS" 2>&1 || {
             echo "[FATAL] xorriso falló al generar la ISO."
-            rm -rf "$MAGIC_ROOTFS"
+            rm -rf "$HIDRA_ROOTFS"
             exit 1
         }
 fi
 
 # --- Limpiar rootfs temporal ---
-rm -rf "$MAGIC_ROOTFS"
+rm -rf "$HIDRA_ROOTFS"
 
 # --- Checksum ---
 sha256sum "$ISO_OUTPUT" > "$ISO_OUTPUT.sha256"

@@ -1,23 +1,23 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://spellos.dev/schema/magic-v1.json",
-  "title": "SpellOS magic.yaml Schema",
-  "description": "JSON Schema para validación de magic.yaml — el archivo declarativo de configuración de SpellOS. Campos en 'integrity' son inmutables: el usuario no puede desactivar verify_boot ni enforce_signing.",
+  "$id": "https://hidralisk.dev/schema/hidra-v1.json",
+  "title": "Hidralisk hidra.yaml Schema",
+  "description": "JSON Schema para validación de hidra.yaml — el archivo declarativo de configuración de Hidralisk. Campos en 'integrity' son inmutables: el usuario no puede desactivar verify_boot ni enforce_signing.",
   "type": "object",
-  "required": ["magic", "layers", "integrity"],
+  "required": ["hidra", "layers", "integrity"],
   "additionalProperties": false,
   "properties": {
-    "magic": {
-      "$id": "#magic",
+    "hidra": {
+      "$id": "#hidra",
       "type": "object",
-      "description": "Metadatos del sistema SpellOS",
+      "description": "Metadatos del sistema Hidralisk",
       "required": ["version", "kernel", "base"],
       "additionalProperties": false,
       "properties": {
         "version": {
           "type": "string",
           "pattern": "^[0-9]+\\.[0-9]+(\\.[0-9]+)?$",
-          "description": "Versión semver de la configuración magic.yaml",
+          "description": "Versión semver de la configuración hidra.yaml",
           "examples": ["1.0", "1.2.3"]
         },
         "kernel": {
@@ -134,7 +134,7 @@
     "integrity": {
       "$id": "#integrity",
       "type": "object",
-      "description": "Configuración de integridad del sistema. Estos campos son INMUTABLES — el usuario no puede desactivarlos. El intento de hacerlo debe ser rechazado por Grimoire.",
+      "description": "Configuración de integridad del sistema. Estos campos son INMUTABLES — el usuario no puede desactivarlos. El intento de hacerlo debe ser rechazado por Overmind.",
       "required": ["verify_boot", "enforce_signing", "audit_log"],
       "additionalProperties": false,
       "properties": {
@@ -146,18 +146,18 @@
         "enforce_signing": {
           "type": "boolean",
           "const": true,
-          "description": "INMUTABLE: siempre true. Requiere firma criptográfica en magic.yaml y todas las capas ostree. El usuario NO puede desactivar esto."
+          "description": "INMUTABLE: siempre true. Requiere firma criptográfica en hidra.yaml y todas las capas ostree. El usuario NO puede desactivar esto."
         },
         "audit_log": {
           "type": "string",
-          "pattern": "^/var/log/magic/[a-zA-Z0-9._-]+$",
+          "pattern": "^/var/log/hidra/[a-zA-Z0-9._-]+$",
           "description": "Ruta al directorio de audit log (append-only via chattr +a)",
-          "default": "/var/log/magic/audit"
+          "default": "/var/log/hidra/audit"
         }
       }
     }
   },
-  "x-spellos-security": {
+  "x-hidralisk-security": {
     "immutable_fields": ["integrity.verify_boot", "integrity.enforce_signing", "layers.session.ephemeral"],
     "denylist_patterns": ["exec", "script", "command", "eval", "system"],
     "sri_required_fields": ["layers.user.dotfiles.source", "layers.system.repo.url"],
