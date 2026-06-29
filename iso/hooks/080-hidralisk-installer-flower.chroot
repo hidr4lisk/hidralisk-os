@@ -1,3 +1,10 @@
+#!/bin/sh
+# Description: Hidralisk OS - reemplazar el icono flower del instalador por el dragon.
+# DEBE correr despues de 001 (que instala vanilla-installer y shippea la flor); por eso
+# es un hook y no includes.chroot (que se aplica ANTES del install del paquete y se pisa).
+# Dragon NEGRO: la tarjeta de bienvenida del instalador es de fondo claro.
+set -e
+cat > /usr/share/icons/hicolor/scalable/apps/org.vanillaos.Installer-flower.svg <<'SVGEOF'
 <?xml version="1.0" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 20010904//EN"
  "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
@@ -69,3 +76,6 @@ l2040 -2 133 -21z"/>
 333 108 54 269 95 395 101 14 0 66 -4 115 -9z"/>
 </g>
 </svg>
+
+SVGEOF
+echo "[hidralisk] flower -> dragon Hidralisk"

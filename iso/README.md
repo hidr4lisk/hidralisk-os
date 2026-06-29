@@ -15,8 +15,6 @@ cp <este-repo>/iso/hooks/*.chroot etc/config/hooks/live/
 chmod +x etc/config/hooks/live/*.chroot
 # menú GRUB de la ISO (rebrand)
 cp <este-repo>/iso/bootloaders/grub-pc/grub.cfg etc/config/bootloaders/grub-pc/grub.cfg
-# overlay de assets (ícono "flower" del instalador -> dragón Hidralisk)
-cp -r <este-repo>/iso/includes.chroot/. etc/config/includes.chroot/
 docker run --privileged -i -v /proc:/proc -v ${PWD}:/working_dir -w /working_dir \
   ghcr.io/vanilla-os/pico:main /bin/bash -s etc/terraform.conf < build.sh
 # → builds/amd64/VanillaOS-2-stable.YYYYMMDD.iso  (instala Hidralisk OS directo)
@@ -30,6 +28,10 @@ docker run --privileged -i -v /proc:/proc -v ${PWD}:/working_dir -w /working_dir
   qué se instala.**
 - **`hooks/079-hidralisk-installer-name.chroot`** *(branding, Spike-5)* — rebrand del
   `Name` del `.desktop` del instalador → "Hidralisk OS" (el ícono/lanzador).
+- **`hooks/080-hidralisk-installer-flower.chroot`** *(branding, Spike-5)* — reemplaza el
+  ícono `flower` del instalador (`distro_logo`) por el dragón (SVG negro embebido).
+  **Es un hook (no `includes.chroot`)** porque el `.deb` del instalador se instala en el
+  hook 001, *después* de los includes — así que el overlay se pisaba; el hook corre al final.
 - **`bootloaders/grub-pc/grub.cfg`** *(branding, Spike-5)* — menú de boot de la ISO:
   `menuentry "Install Hidralisk OS"` (+ Safe Graphics / Nouveau).
 
