@@ -70,8 +70,8 @@ echo ""
 # ═══════════════════════════════════════════════════════════
 echo "═══ Fase 0: Prerequisitos del host ═══"
 
-REQUIRED_CMDS=(mmdebstrap gpg sha256sum ostree bsdtar python3 mkosi xorriso)
-OPTIONAL_CMDS=(cosign)
+REQUIRED_CMDS=(mmdebstrap gpg sha256sum ostree bsdtar python3)
+OPTIONAL_CMDS=(mkosi xorriso cosign)
 
 MISSING_REQUIRED=()
 MISSING_OPTIONAL=()
@@ -138,7 +138,7 @@ if bash "$SCRIPT_DIR/stage1-base.sh"; then
     BASE_HASH="$OUTDIR/base-$VERSION.sha256"
 
     ARTIFACTS_OK=true
-    for f in "$BASE_TAR" "$BASE_HASH"; do
+    for f in "$BASE_TAR" "$BASE_HASH" "$BASE_SIG"; do
         if [ ! -f "$f" ]; then
             fail "Stage 1 no produjo: $f"
             ARTIFACTS_OK=false
@@ -150,8 +150,15 @@ if bash "$SCRIPT_DIR/stage1-base.sh"; then
         EXPECTED=$(cut -d' ' -f1 < "$BASE_HASH")
         ACTUAL=$(sha256sum "$BASE_TAR" | cut -d' ' -f1)
         if [ "$EXPECTED" = "$ACTUAL" ]; then
-            pass "Stage 1 completado — checksum OK"
-            stage_pass "Stage 1: rootfs"
+            # Verificar firma GPG
+            if gpg --verify "$BASE_SIG" "$BASE_TAR" 2>/dev/null; then
+                pass "Stage 1 completado — checksum + firma GPG OK"
+                stage_pass "Stage 1: rootfs"
+            else
+                fail "Stage 1: firma GPG inválida"
+                stage_fail "Stage 1: rootfs"
+                exit 1
+            fi
         else
             fail "Stage 1: checksum mismatch"
             stage_fail "Stage 1: rootfs"
@@ -181,7 +188,7 @@ if bash "$SCRIPT_DIR/stage2-magic.sh"; then
     MAGIC_HASH="$OUTDIR/magic-$VERSION.sha256"
 
     ARTIFACTS_OK=true
-    for f in "$MAGIC_TAR" "$MAGIC_HASH"; do
+    for f in "$MAGIC_TAR" "$MAGIC_HASH" "$MAGIC_SIG"; do
         if [ ! -f "$f" ]; then
             fail "Stage 2 no produjo: $f"
             ARTIFACTS_OK=false
@@ -192,8 +199,14 @@ if bash "$SCRIPT_DIR/stage2-magic.sh"; then
         EXPECTED=$(cut -d' ' -f1 < "$MAGIC_HASH")
         ACTUAL=$(sha256sum "$MAGIC_TAR" | cut -d' ' -f1)
         if [ "$EXPECTED" = "$ACTUAL" ]; then
-            pass "Stage 2 completado — checksum OK"
-            stage_pass "Stage 2: SpellOS layer"
+            if gpg --verify "$MAGIC_SIG" "$MAGIC_TAR" 2>/dev/null; then
+                pass "Stage 2 completado — checksum + firma GPG OK"
+                stage_pass "Stage 2: SpellOS layer"
+            else
+                fail "Stage 2: firma GPG inválida"
+                stage_fail "Stage 2: SpellOS layer"
+                exit 1
+            fi
         else
             fail "Stage 2: checksum mismatch"
             stage_fail "Stage 2: SpellOS layer"
@@ -267,10 +280,12 @@ rm -f "$OUTDIR/layer-$VERSION"* "$OUTDIR/registry.asc"* 2>/dev/null || true
 
 if bash "$SCRIPT_DIR/stage3-ostree.sh"; then
     LAYER_TAR="$OUTDIR/layer-$VERSION.tar"
+    LAYER_SIG="$OUTDIR/layer-$VERSION.tar.sig"
+    LAYER_HASH="$OUTDIR/layer-$VERSION.tar.sha256"
     REGISTRY="$OUTDIR/registry.asc"
 
     ARTIFACTS_OK=true
-    for f in "$LAYER_TAR" "$REGISTRY"; do
+    for f in "$LAYER_TAR" "$LAYER_SIG" "$LAYER_HASH" "$REGISTRY"; do
         if [ ! -f "$f" ]; then
             fail "Stage 3 no produjo: $f"
             ARTIFACTS_OK=false
@@ -278,8 +293,22 @@ if bash "$SCRIPT_DIR/stage3-ostree.sh"; then
     done
 
     if $ARTIFACTS_OK; then
-        pass "Stage 3 completado — ostree commit + registry.asc"
-        stage_pass "Stage 3: ostree"
+        EXPECTED=$(cut -d' ' -f1 < "$LAYER_HASH")
+        ACTUAL=$(sha256sum "$LAYER_TAR" | cut -d' ' -f1)
+        if [ "$EXPECTED" = "$ACTUAL" ]; then
+            if gpg --verify "$LAYER_SIG" "$LAYER_TAR" 2>/dev/null; then
+                pass "Stage 3 completado — ostree + registry.asc"
+                stage_pass "Stage 3: ostree"
+            else
+                fail "Stage 3: firma GPG inválida"
+                stage_fail "Stage 3: ostree"
+                exit 1
+            fi
+        else
+            fail "Stage 3: checksum mismatch"
+            stage_fail "Stage 3: ostree"
+            exit 1
+        fi
     else
         stage_fail "Stage 3: ostree"
         exit 1

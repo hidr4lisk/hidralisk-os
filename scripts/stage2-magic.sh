@@ -289,8 +289,16 @@ magic:
 
 layers:
   system:
-    packages: []
-    services: {}
+    packages:
+      - openssh-server
+      - ufw
+      - htop
+      - git
+      - curl
+      - tree
+    services:
+      ssh: enabled
+      ufw: enabled
 
   user:
     packages: []
@@ -308,9 +316,18 @@ YAML
 
 # --- AppArmor profiles (copiar desde HARDENING.md en producción) ---
 mkdir -p "$ROOTFS_DIR/etc/apparmor.d"
-install -m 644 "$REPO_DIR/keys/verify.pub" "$ROOTFS_DIR/etc/magic/keys/verify.pub" 2>/dev/null || \
-    echo "Placeholder: verify.pub ausente — generar con cosign durante build real" \
-    > "$ROOTFS_DIR/etc/magic/keys/verify.pub"
+PUBKEY="$REPO_DIR/keys/verify.pub"
+if [ ! -f "$PUBKEY" ]; then
+    echo "[FATAL] keys/verify.pub no existe."
+    echo "        Ejecutar: make deps"
+    exit 1
+fi
+if ! gpg --import --dry-run "$PUBKEY" 2>/dev/null; then
+    echo "[FATAL] keys/verify.pub no es una clave GPG válida."
+    echo "        Ejecutar: make deps"
+    exit 1
+fi
+install -m 644 "$PUBKEY" "$ROOTFS_DIR/etc/magic/keys/verify.pub"
 
 # --- Limpiar y empaquetar ---
 echo "[STAGE-2] Limpiando y empaquetando..."

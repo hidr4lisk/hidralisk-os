@@ -5,7 +5,7 @@ VERSION ?= snapshot-$(shell date +%Y%m%d)
 OUTDIR ?= $(CURDIR)/output
 ISO ?= $(shell ls -t $(OUTDIR)/SpellOS-*.iso 2>/dev/null | head -1)
 
-.PHONY: build deps quick-test test-vm clean
+.PHONY: build deps lint quick-test smoke-test qa test-vm clean
 
 build:
 	@echo "=== SpellOS Build Pipeline ==="
@@ -28,7 +28,8 @@ deps:
 		python3-jsonschema \
 		qemu-system-x86 \
 		libarchive-tools \
-		xxd
+		shellcheck \
+		yamllint
 	@echo "=== Setup clave de desarrollo ==="
 	@if command -v gpg &>/dev/null; then
 		gpg --batch --quick-gen-key build@spellos.dev default default never 2>/dev/null || true
@@ -90,10 +91,11 @@ quick-test:
 		if command -v "$$cmd" &>/dev/null; then
 			echo "  OK: $$cmd disponible"
 		else
-			echo "  WARN: $$cmd no encontrado (requerido para build completo)"
+			echo "  FAIL: $$cmd no encontrado (requerido para build completo)" >&2
+			((errors++))
 		fi
 	done
-	@for cmd in mkosi xorriso bsdtar qemu-system-x86_64 xxd; do
+	@for cmd in mkosi xorriso bsdtar qemu-system-x86_64; do
 		if command -v "$$cmd" &>/dev/null; then
 			echo "  OK: $$cmd disponible"
 		else
@@ -122,6 +124,59 @@ quick-test:
 	else
 		echo "=== RESULTADO: PASS — pipeline listo para build ==="
 	fi
+
+lint:
+	@echo "=== SpellOS Lint ==="
+	@errors=0
+	@echo "--- shellcheck ---"
+	@if command -v shellcheck &>/dev/null; then
+		if shellcheck scripts/*.sh; then
+			echo "  OK: shellcheck passed"
+		else
+			echo "  FAIL: shellcheck encontró errores" >&2
+			((errors++))
+		fi
+	else
+		echo "  WARN: shellcheck no instalado — saltando" >&2
+	fi
+	@echo ""
+	@echo "--- yamllint ---"
+	@if command -v yamllint &>/dev/null; then
+		if yamllint mmdebstrap/bookworm.conf .github/workflows/*.yml; then
+			echo "  OK: yamllint passed"
+		else
+			echo "  FAIL: yamllint encontró errores" >&2
+			((errors++))
+		fi
+	else
+		echo "  WARN: yamllint no instalado — saltando" >&2
+	fi
+	@echo ""
+	@echo "--- JSON syntax check ---"
+	@if command -v python3 &>/dev/null; then
+		if python3 -c "import json; json.load(open('magic-schema.json'))" 2>/dev/null; then
+			echo "  OK: magic-schema.json (syntax OK)"
+		else
+			echo "  FAIL: magic-schema.json (JSON inválido)" >&2
+			((errors++))
+		fi
+	else
+		echo "  WARN: python3 no disponible — saltando validación JSON" >&2
+	fi
+	@echo ""
+	@if [ "$$errors" -gt 0 ]; then
+		echo "=== LINT RESULT: FAIL — $$errors errores ===" >&2
+		exit 1
+	else
+		echo "=== LINT RESULT: PASS ==="
+	fi
+
+smoke-test:
+	@echo "=== SpellOS Smoke Test ==="
+	VERSION="$(VERSION)" OUTDIR="$(OUTDIR)" bash scripts/smoke-test.sh
+
+qa: lint quick-test smoke-test
+	@echo "=== QA completo ==="
 
 test-vm: $(ISO)
 	@if [ -z "$(ISO)" ]; then

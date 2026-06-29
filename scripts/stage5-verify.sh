@@ -186,8 +186,8 @@ ISO_DIGEST=$(sha256sum "$ISO_FILE" | cut -d' ' -f1)
 # Recopilar metadatos del build
 GIT_COMMIT=$(cd "$REPO_DIR" && git rev-parse HEAD 2>/dev/null || echo "unknown")
 GIT_REPO=$(cd "$REPO_DIR" && git remote get-url origin 2>/dev/null || echo "unknown")
-BUILD_HOST=$(hostname 2>/dev/null || echo "unknown")
-BUILD_USER=$(whoami 2>/dev/null || echo "unknown")
+BUILD_HOST="${BUILD_HOST:-spellos-builder}"
+BUILD_USER="${BUILD_USER:-ci}"
 BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 BUILD_TOOL="stage5-verify.sh"
 MMDEBSTRAP_VERSION=$(mmdebstrap --version 2>/dev/null | head -1 || echo "unknown")

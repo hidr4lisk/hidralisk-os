@@ -46,15 +46,18 @@ jobs:
           gpg --batch --quick-gen-key "$GPG_KEY" default default never 2>/dev/null
           gpg --export --armor "$GPG_KEY" > keys/verify.pub
 
+      - name: Quick test pre-build
+        run: make quick-test
+
       - name: Ejecutar pipeline
         run: make build
         env:
           VERSION: ${{ env.VERSION }}
 
-      - name: Verificar ISO
-        run: make test-vm
+      - name: Smoke test post-build
+        run: make smoke-test
         env:
-          QEMU_KVM: no
+          VERSION: ${{ env.VERSION }}
 
       - name: Firmar ISO con cosign
         if: ${{ env.COSIGN_KEY != '' }}
