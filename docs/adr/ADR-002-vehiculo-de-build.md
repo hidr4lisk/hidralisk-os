@@ -1,6 +1,6 @@
 # ADR-002 — Vehículo de build: pivotar de bootc-on-Debian a Vib/Vanilla
 
-- **Estado:** Propuesta (espera OK de fede) · **Fecha:** 2026-06-29
+- **Estado:** ✅ Aceptada (fede, 2026-06-29) · **Fecha:** 2026-06-29
 - **Depende de:** [ADR-001](ADR-001-base-tecnologica.md) (aceptado: "construir sobre lo existente, no de cero")
 - **Origen:** resultados del Spike-1/2 en el Laboratorio (192.168.0.7, KVM)
 
@@ -60,4 +60,10 @@ Por qué:
 ## 6. Estado de validación
 
 - [x] Spike-1/2 — bootc-on-Debian: **descartado hoy** (evidencia §2)
-- [ ] Spike-3 — Vib: receta mínima + boot en KVM (siguiente)
+- [x] **Spike-3 — Vib/Vanilla: ✅ VALIDADO (2026-06-29).** Receta Vib mínima sobre
+  `ghcr.io/vanilla-os/core` construyó la imagen **Hidralisk OS** con `apt` instalando
+  openssh-server/ufw/htop/ca-certificates (binarios presentes) + identidad en
+  `/etc/hidralisk-os-release`. **La pared #1 (apt-layering sobre base inmutable) resuelta.**
+  Nota: `core` no necesita `lpkg --unlock` (su capa no está trabada; eso es de `desktop`).
+  Detalle → [`../../vib/README.md`](../../vib/README.md).
+- [ ] Spike-4 — bootear una imagen Hidralisk OS de verdad (ISO live de Vanilla / deploy ABRoot) en KVM.
