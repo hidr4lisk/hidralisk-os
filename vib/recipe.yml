@@ -40,6 +40,11 @@ stages:
           # a propósito → abroot/vso/lpkg keyean por ese ID; cambiarlo los rompería. /etc/os-release
           # es symlink a ../usr/lib/os-release, así que pisando este cubre ambos.
           - printf 'PRETTY_NAME="Hidralisk OS"\nNAME="Hidralisk OS"\nVERSION_ID="2.0"\nVERSION="2.0 (spike-vib)"\nVERSION_CODENAME="orchid"\nID=vanilla\nID_LIKE=debian\nVARIANT="Hidralisk OS (spike-vib)"\nVARIANT_ID=hidralisk-os\nHOME_URL="https://github.com/hidr4lisk/hidralisk-os"\nSUPPORT_URL="https://github.com/hidr4lisk/hidralisk-os"\nBUG_REPORT_URL="https://github.com/hidr4lisk/hidralisk-os/issues"\n' > /usr/lib/os-release
+          # Spike-5: deshabilitar el VSO First Setup (onboarding de Vanilla que, en el primer login,
+          # muestra tema/apps y dispara `vso pico-init` → distrobox → contenedor `apx-vso-pico`.
+          # Eso es frágil en VM (distrobox+podman rootless+--init) y NO es core de Hidralisk OS).
+          # Quitando el autostart de /etc/skel, ningún usuario nuevo lo corre → login directo al escritorio.
+          - rm -f /etc/skel/.config/autostart/org.vanillaos.FirstSetup.autostart.desktop
           - systemctl enable ssh
           - apt-get autoremove -y
           - apt-get clean
