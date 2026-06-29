@@ -40,7 +40,18 @@ sudo podman run --rm -it --privileged \
 Valida: la imagen **arranca como SO inmutable de verdad** (no solo lintea). Si `debian-bootc`
 da problemas en este paso (es experimental), el plan B del ADR es Vanilla OS / ABRoot.
 
-## Estado
+## Estado — descartado (ver ADR-002)
 
-- [ ] Spike-1 — build + lint en el Lab
-- [ ] Spike-2 — boot en KVM
+Corrido en el Laboratorio (2026-06-29). Resultado: **el combo `bootcrew/debian-bootc` +
+`bootc-image-builder` está demasiado crudo para Debian hoy** — 5 fallas concretas (sin DB de
+dpkg para layerizar apt, sin VERSION_ID, sin DefaultRootFs, stage SELinux hardcodeado en bib, y
+deployment ostree roto en el `bootc install` nativo). La KVM y el tooling de fondo (bootc/ostree/
+**verity**) funcionan; la imagen base experimental no.
+
+→ **Decisión: pivotar a Vib/Vanilla.** Detalle y evidencia en
+[`../docs/adr/ADR-002-vehiculo-de-build.md`](../docs/adr/ADR-002-vehiculo-de-build.md).
+
+- [x] Spike-1/2 — bootc-on-Debian → **descartado** (evidencia en ADR-002)
+- [ ] Spike-3 — receta **Vib** mínima + boot en KVM (siguiente)
+
+> Este `Containerfile` queda como registro del experimento, no como base del proyecto.
