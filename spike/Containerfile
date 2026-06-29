@@ -18,7 +18,9 @@ FROM ghcr.io/bootcrew/debian-bootc:latest
 
 # ── Capa "seguridad por defecto" (token del diferenciador del ADR §4) ─────────
 # En fases siguientes, HARDENING.md se materializa entero acá. Esto es la muestra.
-RUN apt-get update && \
+# En imágenes bootc /var viene vacío → apt necesita que existan sus dirs de trabajo.
+RUN mkdir -p /var/lib/apt/lists/partial /var/cache/apt/archives/partial && \
+    apt-get update && \
     apt-get install -y --no-install-recommends \
         openssh-server ufw htop ca-certificates && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
