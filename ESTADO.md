@@ -86,13 +86,11 @@ el 80% del sufrimiento futuro.
 
 ## 3. Estado del repo (housekeeping)
 
-- Es repo git con historial real de la mesa (branch `master`, ~10 commits).
-- **Archivos creados por el container del enjambre como `root`** → para poder editarlos:
-  ```
-  sudo chown -R patadamortal:patadamortal ~/repos/spellos
-  ```
-- Hay cambios sin commitear del último turno de la mesa (`M Makefile`, `M build.sh`,
-  `M stage2/stage5`, `?? smoke-test.sh`, `?? lint.yml`) — revisar y commitear o descartar.
+- Vive en **`~/repos/hidralisk-os`** (movido desde `~/repos/spellos` el 2026-06-29). Repo git con
+  historial real de la mesa 177 (branch `master`) + snapshot final + rename global a Hidralisk OS.
+- ✅ Propiedad arreglada (`chown` a `patadamortal`) y todos los cambios de la mesa commiteados.
+- ⏳ Pendiente: crear el repo remoto en GitHub y `git push` (placeholders de marca en la
+  attestation SLSA — `hidralisk.dev`, `github.com/hidralisk/hidralisk` — a confirmar al publicar).
 
 ## 4. Veredicto
 
