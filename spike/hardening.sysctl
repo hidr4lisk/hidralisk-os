@@ -1,0 +1,27 @@
+# Hidralisk OS — hardening de kernel (muestra del Spike-1).
+# En fases siguientes, HARDENING.md se materializa acá entero. Esto es el token
+# de la tesis del ADR-001 §4: la seguridad-por-defecto es config real de la imagen.
+
+# ── Red ───────────────────────────────────────────────────────────────────────
+net.ipv4.conf.all.rp_filter = 1
+net.ipv4.conf.all.accept_redirects = 0
+net.ipv4.conf.all.send_redirects = 0
+net.ipv4.conf.all.accept_source_route = 0
+net.ipv4.conf.all.log_martians = 1
+net.ipv6.conf.all.accept_redirects = 0
+net.ipv6.conf.all.accept_source_route = 0
+
+# ── Kernel ────────────────────────────────────────────────────────────────────
+kernel.kptr_restrict = 2
+kernel.dmesg_restrict = 1
+kernel.yama.ptrace_scope = 1
+kernel.kexec_load_disabled = 1
+kernel.unprivileged_bpf_disabled = 1
+net.core.bpf_jit_harden = 2
+
+# ── Filesystem ────────────────────────────────────────────────────────────────
+fs.protected_hardlinks = 1
+fs.protected_symlinks = 1
+fs.protected_fifos = 2
+fs.protected_regular = 2
+fs.suid_dumpable = 0
