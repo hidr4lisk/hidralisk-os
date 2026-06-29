@@ -1,0 +1,12 @@
+#!/bin/sh
+# Description: Hidralisk OS - rebrand del nombre del instalador (.desktop Name -> Hidralisk OS)
+# El .desktop trae Name=Vanilla OS Installer (+ Name[xx] traducidos). "Vanilla OS" solo
+# aparece en los valores Name; Exec=vanilla-installer e Icon=org.vanillaos.Installer NO
+# contienen "Vanilla OS", así que el sed global es seguro.
+set -e
+for f in /usr/share/applications/org.vanillaos.Installer.desktop \
+         /etc/skel/.config/autostart/org.vanillaos.Installer.desktop \
+         /home/*/.config/autostart/org.vanillaos.Installer.desktop; do
+  [ -f "$f" ] && sed -i 's/Vanilla OS/Hidralisk OS/g' "$f" || true
+done
+echo "[hidralisk] instalador .desktop Name -> Hidralisk OS"
