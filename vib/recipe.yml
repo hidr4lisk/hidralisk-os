@@ -36,6 +36,10 @@ stages:
           - apt-get update
           - apt-get install -y --no-install-recommends openssh-server ufw htop ca-certificates qemu-guest-agent spice-vdagent
           - printf 'NAME="Hidralisk OS"\nID=hidralisk-os\nVARIANT="spike-vib"\n' > /etc/hidralisk-os-release
+          # Branding: pisar el os-release (PRETTY_NAME/NAME = Hidralisk OS). Mantengo ID=vanilla
+          # a propósito → abroot/vso/lpkg keyean por ese ID; cambiarlo los rompería. /etc/os-release
+          # es symlink a ../usr/lib/os-release, así que pisando este cubre ambos.
+          - printf 'PRETTY_NAME="Hidralisk OS"\nNAME="Hidralisk OS"\nVERSION_ID="2.0"\nVERSION="2.0 (spike-vib)"\nVERSION_CODENAME="orchid"\nID=vanilla\nID_LIKE=debian\nVARIANT="Hidralisk OS (spike-vib)"\nVARIANT_ID=hidralisk-os\nHOME_URL="https://github.com/hidr4lisk/hidralisk-os"\nSUPPORT_URL="https://github.com/hidr4lisk/hidralisk-os"\nBUG_REPORT_URL="https://github.com/hidr4lisk/hidralisk-os/issues"\n' > /usr/lib/os-release
           - systemctl enable ssh
           - apt-get autoremove -y
           - apt-get clean
