@@ -42,3 +42,9 @@ keys/verify.pub
 # mkosi extra (stubs se generan en build)
 mkosi/extra/*
 !mkosi/extra/.gitkeep
+
+# Spike — artefactos de build (no versionar)
+output/
+vib-amd64
+plugins/
+Containerfile

@@ -1,0 +1,37 @@
+# Hidralisk OS — Spike-3: receta Vib mínima sobre la base inmutable de Vanilla OS.
+#
+# Valida lo que la pared #1 del Spike-1/2 bloqueaba (ver ADR-002): que se pueden
+# INSTALAR PAQUETES con apt sobre una base Debian inmutable real. Vanilla core SÍ
+# trae la DB de dpkg funcional (a diferencia de bootcrew/debian-bootc).
+#
+# Build (en el Laboratorio):
+#   vib build vib/recipe.yml          # → genera un Containerfile
+#   sudo podman build -t hidralisk-os:vib -f Containerfile .
+#
+# Usamos solo módulos `shell` (apt-get directo) para no depender de plugins.
+
+name: Hidralisk OS (spike Vib)
+id: hidralisk-os
+stages:
+  - id: build
+    base: ghcr.io/vanilla-os/core:latest
+    labels:
+      maintainer: HIDRA / hidr4lisk
+      org.hidralisk.spike: "3"
+    args:
+      DEBIAN_FRONTEND: noninteractive
+    modules:
+      # ── La prueba: apt-layering sobre la base inmutable ──────────────────────
+      - name: paquetes-base
+        type: shell
+        commands:
+          - apt-get update
+          - apt-get install -y --no-install-recommends openssh-server ufw htop ca-certificates
+          - apt-get clean
+          - rm -rf /var/lib/apt/lists/*
+
+      # ── Identidad de la distro ───────────────────────────────────────────────
+      - name: identidad
+        type: shell
+        commands:
+          - printf 'NAME="Hidralisk OS"\nID=hidralisk-os\nVARIANT="spike-vib"\n' > /etc/hidralisk-os-release
