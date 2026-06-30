@@ -22,8 +22,9 @@ mediante una ISO custom. Lo que ya funciona:
   seguridad (`sysctl`/`ufw`) quedan todos correctos.
 - **Test de `apx` post-instalación** — confirmar que instalar software en contenedores rootless
   funciona con el hardening aplicado (es la razón por la que se omiten ciertos `sysctl`).
-- ~~**CI** — workflow que valide la receta Vib en cada push~~ ✅ hecho (`.github/workflows/ci.yml`:
-  yamllint del recipe + `bash -n` de los hooks + compile de hidrafetch + `vib build` real).
+- ~~**CI** — workflow que valide la receta en cada push~~ ✅ hecho (`.github/workflows/ci.yml`:
+  yamllint + validación de estructura del recipe (PyYAML) + `bash -n` de los hooks + compile de
+  hidrafetch). Offline/determinístico; el `vib build` real se corre en el Laboratorio.
 
 ## Hardening — fases siguientes
 

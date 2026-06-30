@@ -1,8 +1,8 @@
 name: CI
 
-# Valida lo que rompe un build: la receta Vib, la sintaxis de los hooks de la ISO,
-# y la app de estado. No buildea la imagen/ISO (eso se hace en el Laboratorio) —
-# valida que las piezas estén bien formadas antes de llegar ahí.
+# Valida lo que rompe un build, sin buildear (eso se hace en el Laboratorio):
+# la receta Vib (YAML + estructura), la sintaxis de los hooks de la ISO, y la app de
+# estado. Todo offline y determinístico — sin descargar binarios externos.
 
 on:
   push:
@@ -11,8 +11,8 @@ on:
     branches: [main]
 
 jobs:
-  lint:
-    name: Lint (recipe · hooks · status)
+  validate:
+    name: Validar (recipe · hooks · status)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,6 +23,28 @@ jobs:
           yamllint -d "{extends: relaxed, rules: {line-length: disable, document-start: disable}}" \
             vib/recipe.yml .github/workflows/
 
+      - name: Estructura de la receta Vib
+        run: |
+          python3 - <<'PY'
+          import yaml, sys
+          r = yaml.safe_load(open("vib/recipe.yml"))
+          errs = []
+          if not r.get("name"): errs.append("falta 'name'")
+          stages = r.get("stages") or []
+          if not stages: errs.append("sin stages")
+          for i, st in enumerate(stages):
+              if not str(st.get("base", "")).startswith("ghcr.io/"):
+                  errs.append(f"stage {i}: base no es imagen ghcr.io ({st.get('base')!r})")
+              mods = st.get("modules") or []
+              if not mods: errs.append(f"stage {i}: sin modules")
+              for m in mods:
+                  if not m.get("name") or not m.get("type"):
+                      errs.append(f"stage {i}: module sin name/type -> {m}")
+          if errs:
+              print("FAIL:"); [print("  -", e) for e in errs]; sys.exit(1)
+          print(f"OK - recipe '{r['name']}' - {len(stages)} stage(s) - base {stages[0]['base']}")
+          PY
+
       - name: bash -n (hooks de la ISO)
         run: |
           for h in iso/hooks/*.chroot; do
@@ -31,24 +53,3 @@ jobs:
 
       - name: python compile (hidrafetch)
         run: python3 -m py_compile vib/sources/hidralisk/status/hidrafetch
-
-  recipe:
-    name: Vib build (valida la receta)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Bajar Vib (pin v1.1.0)
-        run: |
-          curl -fL --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 20 \
-            -o vib https://github.com/Vanilla-OS/Vib/releases/download/v1.1.0/vib-amd64
-          chmod +x vib
-          file vib | grep -q ELF || { echo "descarga corrupta:"; head -c 300 vib; exit 1; }
-
-      - name: vib build → genera el Containerfile
-        # NOTA: `vib build` regenera vib/sources/ — acá da igual (checkout efímero);
-        # en local SIEMPRE restaurar las sources después (git checkout -- vib/sources).
-        run: |
-          ./vib build vib/recipe.yml
-          test -s vib/Containerfile
-          echo "✅ Receta válida — Containerfile generado ($(wc -l < vib/Containerfile) líneas)"
