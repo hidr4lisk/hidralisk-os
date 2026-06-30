@@ -53,6 +53,24 @@ stages:
           - cp /sources/hidralisk/branding/logo-white.svg /usr/share/desktop-base/vanilla-logos/logo-text.svg
           - cp /sources/hidralisk/branding/logo-white.svg /usr/share/desktop-base/vanilla-logos/logo-text-version.svg
           - cp /sources/hidralisk/branding/watermark.png /usr/share/plymouth/themes/vanilla-bgrt/watermark.png
+          # Spike-5 wallpaper: fondo Hidralisk (dragón + "Hidralisk OS") en escritorio y login.
+          # Default del escritorio vía override de gschema (90_ gana sobre el 20_vanilla);
+          # login GDM vía perfil dconf + db del greeter.
+          - mkdir -p /usr/share/backgrounds/hidralisk /etc/dconf/db/gdm.d /etc/dconf/profile /usr/share/hidralisk
+          - cp /sources/hidralisk/branding/backgrounds/hidralisk.png /usr/share/backgrounds/hidralisk/hidralisk.png
+          - cp /sources/hidralisk/branding/90_hidralisk-background.gschema.override /usr/share/glib-2.0/schemas/
+          - cp /sources/hidralisk/branding/gdm-profile /etc/dconf/profile/gdm
+          - cp /sources/hidralisk/branding/gdm-background /etc/dconf/db/gdm.d/01-hidralisk-background
+          - glib-compile-schemas /usr/share/glib-2.0/schemas/
+          - dconf update
+          # Spike-5: avatar de usuario por defecto = logo Hidralisk. El usuario lo crea el
+          # instalador (nombre desconocido en build) → un oneshot lo setea en el 1er arranque
+          # para el UID 1000. La guarda del .service evita que se repita.
+          - cp /sources/hidralisk/branding/avatar.png /usr/share/hidralisk/avatar.png
+          - cp /sources/hidralisk/branding/hidralisk-default-avatar /usr/libexec/hidralisk-default-avatar
+          - chmod +x /usr/libexec/hidralisk-default-avatar
+          - cp /sources/hidralisk/branding/hidralisk-default-avatar.service /usr/lib/systemd/system/hidralisk-default-avatar.service
+          - systemctl enable hidralisk-default-avatar.service
           - update-initramfs -u
           - systemctl enable ssh
           - apt-get autoremove -y

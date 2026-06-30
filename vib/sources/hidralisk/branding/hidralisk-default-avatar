@@ -1,0 +1,20 @@
+#!/bin/bash
+# Hidralisk OS - setear el avatar del primer usuario (UID 1000) al logo Hidralisk.
+# Corre una vez en el primer arranque (la guarda del .service evita repetir).
+set -e
+U=$(getent passwd 1000 | cut -d: -f1)
+[ -n "$U" ] || exit 0
+mkdir -p /var/lib/AccountsService/icons /var/lib/AccountsService/users
+cp /usr/share/hidralisk/avatar.png /var/lib/AccountsService/icons/"$U"
+chmod 644 /var/lib/AccountsService/icons/"$U"
+f=/var/lib/AccountsService/users/"$U"
+if [ -f "$f" ]; then
+  grep -q '^\[User\]' "$f" || printf '[User]\n' >> "$f"
+  if grep -q '^Icon=' "$f"; then
+    sed -i "s#^Icon=.*#Icon=/var/lib/AccountsService/icons/$U#" "$f"
+  else
+    sed -i "/^\[User\]/a Icon=/var/lib/AccountsService/icons/$U" "$f"
+  fi
+else
+  printf '[User]\nIcon=/var/lib/AccountsService/icons/%s\n' "$U" > "$f"
+fi

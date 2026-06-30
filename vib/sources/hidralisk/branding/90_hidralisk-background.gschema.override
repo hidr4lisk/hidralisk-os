@@ -1,0 +1,9 @@
+[org.gnome.desktop.background]
+picture-uri='file:///usr/share/backgrounds/hidralisk/hidralisk.png'
+picture-uri-dark='file:///usr/share/backgrounds/hidralisk/hidralisk.png'
+picture-options='zoom'
+primary-color='#18181b'
+
+[org.gnome.desktop.screensaver]
+picture-uri='file:///usr/share/backgrounds/hidralisk/hidralisk.png'
+picture-options='zoom'

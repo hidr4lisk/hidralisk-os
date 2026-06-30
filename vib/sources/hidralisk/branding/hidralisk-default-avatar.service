@@ -1,0 +1,14 @@
+[Unit]
+Description=Hidralisk OS - avatar de usuario por defecto (logo)
+ConditionPathExists=!/var/lib/hidralisk/avatar-done
+After=accounts-daemon.service systemd-user-sessions.service
+Before=gdm.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/libexec/hidralisk-default-avatar
+ExecStartPost=/bin/sh -c 'mkdir -p /var/lib/hidralisk && touch /var/lib/hidralisk/avatar-done'
+
+[Install]
+WantedBy=multi-user.target
