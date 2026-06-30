@@ -7,3 +7,6 @@ primary-color='#18181b'
 [org.gnome.desktop.screensaver]
 picture-uri='file:///usr/share/backgrounds/hidralisk/hidralisk.png'
 picture-options='zoom'
+
+[org.gnome.desktop.interface]
+monospace-font-name='Hack Nerd Font Mono 11'

@@ -1,0 +1,35 @@
+# Hidralisk OS — starship (tema Hidralisk, segmentado oscuro)
+add_newline = false
+palette = "hidralisk"
+
+format = """
+[](fg:seg_dir)\
+[ $directory ](bg:seg_dir fg:txt)\
+[](fg:seg_dir bg:seg_git)\
+$git_branch\
+$git_status\
+[](fg:seg_git bg:none)\
+ $character """
+
+[palettes.hidralisk]
+seg_dir = "#3b3b45"
+seg_git = "#26262e"
+txt = "#f2f2f2"
+accent = "#e6c07b"
+
+[directory]
+format = "[$path]($style)"
+style = "fg:txt"
+truncation_length = 3
+truncate_to_repo = true
+
+[git_branch]
+format = "[ $symbol$branch ](bg:seg_git fg:txt)"
+symbol = " "
+
+[git_status]
+format = "[$all_status$ahead_behind](bg:seg_git fg:accent)"
+
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"

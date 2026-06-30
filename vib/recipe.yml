@@ -34,7 +34,7 @@ stages:
           # base `desktop` = capa de paquetes TRABADA → destrabar para apt, retrabar al final
           - lpkg --unlock
           - apt-get update
-          - apt-get install -y --no-install-recommends openssh-server ufw htop ca-certificates qemu-guest-agent spice-vdagent
+          - apt-get install -y --no-install-recommends openssh-server ufw htop ca-certificates qemu-guest-agent spice-vdagent zsh zsh-autosuggestions zsh-syntax-highlighting ptyxis starship
           - printf 'NAME="Hidralisk OS"\nID=hidralisk-os\nVARIANT="spike-vib"\n' > /etc/hidralisk-os-release
           # Branding: pisar el os-release (PRETTY_NAME/NAME = Hidralisk OS). Mantengo ID=vanilla
           # a propósito → abroot/vso/lpkg keyean por ese ID; cambiarlo los rompería. /etc/os-release
@@ -67,10 +67,19 @@ stages:
           # instalador (nombre desconocido en build) → un oneshot lo setea en el 1er arranque
           # para el UID 1000. La guarda del .service evita que se repita.
           - cp /sources/hidralisk/branding/avatar.png /usr/share/hidralisk/avatar.png
-          - cp /sources/hidralisk/branding/hidralisk-default-avatar /usr/libexec/hidralisk-default-avatar
-          - chmod +x /usr/libexec/hidralisk-default-avatar
-          - cp /sources/hidralisk/branding/hidralisk-default-avatar.service /usr/lib/systemd/system/hidralisk-default-avatar.service
-          - systemctl enable hidralisk-default-avatar.service
+          - cp /sources/hidralisk/branding/hidralisk-firstboot /usr/libexec/hidralisk-firstboot
+          - chmod +x /usr/libexec/hidralisk-firstboot
+          - cp /sources/hidralisk/branding/hidralisk-firstboot.service /usr/lib/systemd/system/hidralisk-firstboot.service
+          - systemctl enable hidralisk-firstboot.service
+          # Spike-6 shell: zsh por defecto + starship (tema Hidralisk) + Hack Nerd Font + Ptyxis.
+          # Config system-wide (/etc/zsh/zshrc + /etc/starship.toml), no atada al home. El cambio
+          # de shell del usuario instalado lo hace el oneshot de firstboot (UID 1000).
+          - mkdir -p /usr/share/fonts/truetype/hack-nerd
+          - cp /sources/hidralisk/branding/fonts/*.ttf /usr/share/fonts/truetype/hack-nerd/
+          - fc-cache -f /usr/share/fonts/truetype/hack-nerd
+          - cp /sources/hidralisk/branding/zshrc-system /etc/zsh/zshrc
+          - cp /sources/hidralisk/branding/starship.toml /etc/starship.toml
+          - sed -i 's|^SHELL=.*|SHELL=/usr/bin/zsh|' /etc/default/useradd
           - update-initramfs -u
           - systemctl enable ssh
           - apt-get autoremove -y

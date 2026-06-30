@@ -1,0 +1,26 @@
+# Hidralisk OS — configuración zsh por defecto del sistema (/etc/zsh/zshrc)
+# Limpio y neutro: completado, historial, plugins QoL y prompt starship.
+
+# completado
+autoload -Uz compinit && compinit -u
+zstyle ':completion:*' menu select
+
+# historial
+HISTFILE="$HOME/.zsh_history"
+HISTSIZE=10000
+SAVEHIST=10000
+setopt SHARE_HISTORY HIST_IGNORE_DUPS HIST_IGNORE_SPACE INC_APPEND_HISTORY
+
+# color + aliases estándar (los que trae hasta Debian pelado)
+alias ls='ls --color=auto'
+alias ll='ls -lh --color=auto'
+alias la='ls -A --color=auto'
+alias grep='grep --color=auto'
+
+# plugins QoL (paquetes Debian)
+[ -f /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ] && source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+[ -f /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ] && source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+
+# prompt: starship con el tema Hidralisk del sistema
+export STARSHIP_CONFIG=/etc/starship.toml
+command -v starship >/dev/null && eval "$(starship init zsh)"

@@ -1,9 +1,13 @@
 #!/bin/bash
-# Hidralisk OS - setear el avatar del primer usuario (UID 1000) al logo Hidralisk.
-# Corre una vez en el primer arranque (la guarda del .service evita repetir).
+# Hidralisk OS - personalización del 1er arranque para el usuario instalado (UID 1000):
+#   - avatar = logo Hidralisk
+#   - shell por defecto = zsh
+# El nombre del usuario lo elige el instalador (desconocido en build) -> por eso oneshot.
 set -e
 U=$(getent passwd 1000 | cut -d: -f1)
 [ -n "$U" ] || exit 0
+
+# avatar
 mkdir -p /var/lib/AccountsService/icons /var/lib/AccountsService/users
 cp /usr/share/hidralisk/avatar.png /var/lib/AccountsService/icons/"$U"
 chmod 644 /var/lib/AccountsService/icons/"$U"
@@ -17,4 +21,10 @@ if [ -f "$f" ]; then
   fi
 else
   printf '[User]\nIcon=/var/lib/AccountsService/icons/%s\n' "$U" > "$f"
+fi
+
+# shell por defecto = zsh
+if [ -x /usr/bin/zsh ]; then
+  cur=$(getent passwd "$U" | cut -d: -f7)
+  [ "$cur" = /usr/bin/zsh ] || usermod -s /usr/bin/zsh "$U" || true
 fi

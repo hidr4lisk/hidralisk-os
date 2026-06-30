@@ -1,0 +1,14 @@
+[Unit]
+Description=Hidralisk OS - personalización de primer arranque (avatar + shell zsh)
+ConditionPathExists=!/var/lib/hidralisk/firstboot-done
+After=accounts-daemon.service systemd-user-sessions.service
+Before=gdm.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/libexec/hidralisk-firstboot
+ExecStartPost=/bin/sh -c 'mkdir -p /var/lib/hidralisk && touch /var/lib/hidralisk/firstboot-done'
+
+[Install]
+WantedBy=multi-user.target
