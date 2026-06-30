@@ -34,7 +34,7 @@ stages:
           # base `desktop` = capa de paquetes TRABADA → destrabar para apt, retrabar al final
           - lpkg --unlock
           - apt-get update
-          - apt-get install -y --no-install-recommends openssh-server ufw htop ca-certificates qemu-guest-agent spice-vdagent zsh zsh-autosuggestions zsh-syntax-highlighting ptyxis starship
+          - apt-get install -y --no-install-recommends openssh-server ufw htop ca-certificates qemu-guest-agent spice-vdagent zsh zsh-autosuggestions zsh-syntax-highlighting ptyxis starship gnome-shell-extension-dash-to-panel gnome-shell-extension-arc-menu
           - printf 'NAME="Hidralisk OS"\nID=hidralisk-os\nVARIANT="spike-vib"\n' > /etc/hidralisk-os-release
           # Branding: pisar el os-release (PRETTY_NAME/NAME = Hidralisk OS). Mantengo ID=vanilla
           # a propósito → abroot/vso/lpkg keyean por ese ID; cambiarlo los rompería. /etc/os-release
@@ -97,6 +97,24 @@ stages:
           - ufw allow 22/tcp
           - sed -i 's/^ENABLED=.*/ENABLED=yes/' /etc/ufw/ufw.conf
           - systemctl enable ufw
+          # Spike-8: cazar a Vanilla de la interfaz + escritorio tipo Mint + arreglos de boot.
+          # FsGuard: el chequeo de integridad al boot (010-fsguard.sh) verifica un filelist firmado
+          # con la clave de Vanilla EMBEBIDA en el binario (no re-firmable para imágenes custom) →
+          # nuestras modificaciones lo rompen ("Integrity Check Failed"). Se desactiva: la integridad
+          # ya la dan composefs/fs-verity (root RO) + el hardening de arriba.
+          - rm -f /usr/share/init.d/010-fsguard.sh
+          # ABRoot apuntaba a vanilla-os/desktop (un `abroot upgrade` traería Vanilla stock) →
+          # apuntarlo a NUESTRA imagen.
+          - sed -i 's@vanilla-os/desktop@hidr4lisk/hidralisk-os@' /usr/share/abroot/abroot.json
+          - sed -i '/"tag"/ s@main@latest@' /usr/share/abroot/abroot.json
+          # Onboarding de Vanilla (First Setup + Tour) que el instalador re-agrega al usuario: fuera.
+          - rm -f /usr/share/applications/org.vanillaos.FirstSetup.desktop /usr/share/applications/org.vanillaos.Tour.desktop
+          # Flor de Vanilla del splash de boot (throbber animado, 31 frames 308x308) → dragón.
+          - for f in /usr/share/plymouth/themes/vanilla-bgrt/throbber-*.png; do cp /sources/hidralisk/branding/desktop/dragon-throbber.png "$f"; done
+          # Escritorio tipo Mint: panel arriba (Dash to Panel) + menú estilo Mint con el dragón (Arc Menu).
+          - cp /sources/hidralisk/branding/desktop/menu-icon-white-256.png /usr/share/hidralisk/menu-icon.png
+          - cp /sources/hidralisk/branding/desktop/95_hidralisk-desktop.gschema.override /usr/share/glib-2.0/schemas/
+          - glib-compile-schemas /usr/share/glib-2.0/schemas/
           - apt-get autoremove -y
           - apt-get clean
           - lpkg --lock
