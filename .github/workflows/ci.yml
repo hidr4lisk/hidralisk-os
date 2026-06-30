@@ -38,12 +38,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Bajar Vib
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Bajar Vib (pin v1.1.0)
         run: |
-          gh release download --repo Vanilla-OS/Vib --pattern 'vib-amd64' --output vib
+          curl -fL --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 20 \
+            -o vib https://github.com/Vanilla-OS/Vib/releases/download/v1.1.0/vib-amd64
           chmod +x vib
+          file vib | grep -q ELF || { echo "descarga corrupta:"; head -c 300 vib; exit 1; }
 
       - name: vib build → genera el Containerfile
         # NOTA: `vib build` regenera vib/sources/ — acá da igual (checkout efímero);
