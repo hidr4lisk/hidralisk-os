@@ -30,17 +30,21 @@ El hardening es iterativo. Las próximas capas (blacklist de módulos, `auditd`,
 GRUB, AppArmor profiles, minimización de servicios) están detalladas en
 [`HARDENING.md`](HARDENING.md#roadmap-de-hardening-fases-siguientes).
 
-## Experiencia de escritorio (backlog)
+## Experiencia de escritorio "tipo Linux Mint" — 🟡 preparado, pendiente Lab
 
 GNOME pelado (lo que trae Vanilla) es minimalista. La idea es ofrecer una experiencia **más
-tradicional, tipo Linux Mint**:
+tradicional, tipo Linux Mint**: **panel arriba** con menú de apps + taskbar + bandeja, y el
+**botón de menú = el dragón Hidralisk**. Vía **Dash to Panel** + **Arc Menu** + dconf system-wide.
 
-- **Panel arriba** con menú de apps + taskbar + bandeja de sistema.
-- **Botón de menú = el dragón Hidralisk.**
+Ya hecho (en `vib/sources/hidralisk/branding/desktop/`):
+- ✅ **Ícono de menú** (dragón blanco, lee bien hasta ~44px) — `menu-icon-white-{256,512}.png`.
+- ✅ **Override dconf** borrador (`95_hidralisk-desktop.gschema.override`) — habilita las extensiones,
+  panel arriba, ArcMenu con el dragón.
+- ✅ **Plan de integración + checklist** de verificación → `desktop/README.md`.
 
-Implementación probable, vía extensiones GNOME + dconf preconfigurado a nivel sistema (como el
-wallpaper): **Dash to Panel** (panel + taskbar) + **Arc Menu** (menú estilo Mint, con ícono custom).
-Paso previo: verificar disponibilidad de los paquetes en el repo Debian.
+Falta (necesita Lab): verificar nombres de paquete + UUIDs + claves exactas (cambian por versión),
+ajustar el override, wirearlo al `recipe.yml` y buildear. No está en el recipe activo todavía para no
+arriesgar el build de Spike-7.
 
 ## App de estado del sistema (backlog)
 

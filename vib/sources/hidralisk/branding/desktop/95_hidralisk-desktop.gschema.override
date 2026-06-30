@@ -1,0 +1,42 @@
+# Hidralisk OS — escritorio "tipo Linux Mint" (default system-wide).
+#
+# Convierte el GNOME pelado de Vanilla (top bar + Activities) en una experiencia
+# tradicional: panel arriba con menú de apps + taskbar + bandeja, y el botón de menú
+# = el dragón Hidralisk.
+#
+# Mismo patrón que el wallpaper (90_hidralisk-background): override que gana sobre el
+# default de GNOME; se compila con `glib-compile-schemas`. El usuario lo puede cambiar.
+#
+# ⚠️ PENDIENTE DE VERIFICAR EN EL LAB antes de activar (las UUIDs y los nombres de clave
+#    cambian según la VERSIÓN del paquete de la extensión; ver README.md de este directorio):
+#      · que existan los paquetes  gnome-shell-extension-dashtopanel / -arcmenu  en el repo
+#      · las UUIDs reales (`gnome-extensions list` en una sesión con los paquetes instalados)
+#      · los nombres de clave reales (`gsettings list-recursively <schema>`)
+
+# ── Habilitar las extensiones por defecto ────────────────────────────────────
+[org.gnome.shell]
+# UUIDs típicas (VERIFICAR): Dash to Panel y ArcMenu modernos.
+enabled-extensions=['dash-to-panel@jderose9.github.com', 'arcmenu@arcmenu.com']
+
+# ── Dash to Panel: panel ARRIBA con taskbar ──────────────────────────────────
+# En versiones recientes la posición es por-monitor en JSON; 'TOP' para el monitor 0.
+# (Versiones viejas usaban la clave `panel-position`='TOP'. VERIFICAR cuál aplica.)
+[org.gnome.shell.extensions.dash-to-panel]
+panel-positions='{"0":"TOP"}'
+panel-sizes='{"0":40}'
+# Orden de elementos del panel estilo escritorio tradicional:
+# botón de menú (ArcMenu) · lista de ventanas · zona de estado/bandeja · reloj.
+appicon-margin=4
+show-favorites=false
+isolate-workspaces=true
+
+# ── ArcMenu: menú estilo Mint con nuestro dragón ─────────────────────────────
+[org.gnome.shell.extensions.arcmenu]
+# Layout tipo Mint (categorías a la izq + apps a la der). VERIFICAR el valor exacto
+# que expone la versión instalada (p.ej. 'Mint', 'Brisk', 'Eleven'…).
+menu-layout='Mint'
+# Botón de menú = ícono custom (el dragón blanco que generamos).
+menu-button-icon='Custom_Icon'
+custom-menu-button-icon='/usr/share/hidralisk/menu-icon.png'
+custom-menu-button-icon-size=28.0
+menu-button-position-in-panel='Left'
