@@ -1,27 +1,36 @@
 #!/bin/bash
-# Hidralisk OS - personalización del 1er arranque para el usuario instalado (UID 1000):
-#   - avatar = logo Hidralisk
+# Hidralisk OS - personalizacion del 1er arranque para el usuario instalado.
+#
+# El instalador de Vanilla (albius) crea el usuario con un UID >=1000 (p.ej. 1200, NO 1000),
+# pisa su archivo de AccountsService con `Session=firstsetup` y le copia el autostart del
+# First Setup. En el 1er boot (antes de gdm) lo dejamos como Hidralisk:
+#   - avatar = dragon
+#   - sesion GNOME normal (sin el wizard de la "flor")
 #   - shell por defecto = zsh
-# El nombre del usuario lo elige el instalador (desconocido en build) -> por eso oneshot.
 set -e
-U=$(getent passwd 1000 | cut -d: -f1)
-[ -n "$U" ] || exit 0
 
-# avatar
+# usuario humano real (primer UID en rango 1000-59999; el instalador usa 1200)
+U=$(getent passwd | awk -F: '$3>=1000 && $3<60000 {print $1; exit}')
+[ -n "$U" ] || exit 0
+H=$(getent passwd "$U" | cut -d: -f6)
+
+# avatar = dragon
 mkdir -p /var/lib/AccountsService/icons /var/lib/AccountsService/users
 cp /usr/share/hidralisk/avatar.png /var/lib/AccountsService/icons/"$U"
 chmod 644 /var/lib/AccountsService/icons/"$U"
-f=/var/lib/AccountsService/users/"$U"
-if [ -f "$f" ]; then
-  grep -q '^\[User\]' "$f" || printf '[User]\n' >> "$f"
-  if grep -q '^Icon=' "$f"; then
-    sed -i "s#^Icon=.*#Icon=/var/lib/AccountsService/icons/$U#" "$f"
-  else
-    sed -i "/^\[User\]/a Icon=/var/lib/AccountsService/icons/$U" "$f"
-  fi
-else
-  printf '[User]\nIcon=/var/lib/AccountsService/icons/%s\n' "$U" > "$f"
-fi
+
+# AccountsService: sesion GNOME normal (reemplaza el Session=firstsetup que pone el instalador)
+# + avatar. Reescribimos el archivo entero porque el instalador lo deja con solo el firstsetup.
+cat > /var/lib/AccountsService/users/"$U" <<EOF
+[User]
+Session=gnome
+XSession=gnome
+Icon=/var/lib/AccountsService/icons/$U
+SystemAccount=false
+EOF
+
+# sacar el autostart del First Setup de Vanilla (la "flor") que el instalador copio al home
+rm -f "$H/.config/autostart/org.vanillaos.FirstSetup.desktop"
 
 # shell por defecto = zsh
 if [ -x /usr/bin/zsh ]; then

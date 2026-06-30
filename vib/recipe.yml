@@ -107,8 +107,11 @@ stages:
           # apuntarlo a NUESTRA imagen.
           - sed -i 's@vanilla-os/desktop@hidr4lisk/hidralisk-os@' /usr/share/abroot/abroot.json
           - sed -i '/"tag"/ s@main@latest@' /usr/share/abroot/abroot.json
-          # Onboarding de Vanilla (First Setup + Tour) que el instalador re-agrega al usuario: fuera.
-          - rm -f /usr/share/applications/org.vanillaos.FirstSetup.desktop /usr/share/applications/org.vanillaos.Tour.desktop
+          # Tour de Vanilla fuera. OJO: NO borrar org.vanillaos.FirstSetup.desktop -> el instalador
+          # (albius) lo COPIA al autostart del usuario en postInstall; si no existe, el `cp` FALLA y
+          # aborta la instalacion ANTES del chown del home (= login roto). El First Setup ("la flor")
+          # se neutraliza en el 1er boot via hidralisk-firstboot (Session=gnome + saca el autostart).
+          - rm -f /usr/share/applications/org.vanillaos.Tour.desktop
           # Flor de Vanilla del splash de boot (throbber animado, 31 frames 308x308) → dragón.
           - for f in /usr/share/plymouth/themes/vanilla-bgrt/throbber-*.png; do cp /sources/hidralisk/branding/desktop/dragon-throbber.png "$f"; done
           # Escritorio tipo Mint: panel arriba (Dash to Panel) + menú estilo Mint con el dragón (Arc Menu).
