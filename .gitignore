@@ -1,50 +1,25 @@
-# Hidralisk — archivos generados por el pipeline
+# Hidralisk OS — artefactos generados por el build (no versionar)
 
-# Build output
+# Build de Vib (en el Laboratorio)
+vib-amd64
+plugins/
+Containerfile
+
+# Salida / imágenes
 /output/
-/result/
-
-# Artefactos de stage individual
-*.tar
-*.tar.sig
-*.tar.sha256
 *.iso
 *.iso.sig
 *.iso.sha256
-registry.asc
-attestation.intoto.jsonl
 
-# Directorios temporales
+# Temporales
 /tmp/
 /scratch/
 
-# Dependencias locales
-/vendor/
-/node_modules/
-
-# IDE
+# IDE / OS
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
-
-# OS
 .DS_Store
 Thumbs.db
-
-# Claves (verify.pub se regenera en build, no trackear)
-keys/sign.key
-keys/*.sec
-keys/*.gpg
-keys/verify.pub
-
-# mkosi extra (stubs se generan en build)
-mkosi/extra/*
-!mkosi/extra/.gitkeep
-
-# Spike — artefactos de build (no versionar)
-output/
-vib-amd64
-plugins/
-Containerfile

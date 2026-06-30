@@ -1,36 +1,94 @@
 # Hidralisk OS
 
-**Hidralisk OS** no es una distro más. Es la primera distribución Linux que resuelve la tensión histórica entre inmutabilidad y flexibilidad, entre declaratividad y compatibilidad, entre seguridad y usabilidad.
+**Distribución Linux inmutable, atómica y endurecida por defecto** — construida sobre
+[Vanilla OS 2](https://vanillaos.org), con identidad, shell y postura de seguridad propias.
 
-## Diferenciación clave
+Hidralisk OS no reinventa el sistema operativo: parte de una base inmutable madura
+(ABRoot A/B, OCI, composefs/fs-verity) y construye **encima** lo que la diferencia —
+**seguridad por defecto**, una **experiencia de terminal lista para usar**, y branding propio
+de punta a punta. El sistema base es de solo lectura y se actualiza de forma transaccional;
+si algo sale mal, el rollback es atómico.
 
-### Sistema inmutable por capas
-Inspirado en Fedora Silverblue y NixOS, Hidralisk lleva la inmutabilidad al siguiente nivel con un modelo de **capas atómicas apilables**. Cada capa (base, sistema, usuario, sesión) es un artefacto firmado e inmutable. El usuario nunca modifica el sistema en caliente: declara el estado deseado y el orquestador lo materializa atómicamente.
+> Estado: **funcional**. Instala y bootea desde nuestra imagen OCI con una ISO custom.
+> En desarrollo activo — ver [`ROADMAP.md`](ROADMAP.md).
 
-### Compatibilidad total con `.deb`
-A diferencia de Silverblue (aislado de RPM) o NixOS (ecosistema cerrado), Hidralisk ejecuta cualquier paquete `.deb` sin fricción. El gestor `hidra-apt` envuelve apt dentro del modelo de capas: cada instalación crea una nueva capa overlay sobre la base, no un parche sobre el sistema vivo. Rollback nativo con Btrfs snapshots.
+---
 
-### Overmind — Orquestador declarativo nativo
-`overmind` es el corazón de Hidralisk. Un lenguaje declarativo YAML-based donde definís el estado completo del sistema: paquetes, servicios, usuarios, monturas, kernels, firmas. Un solo archivo `hidra.yaml` versionable en git describe una máquina entera. `overmind apply` materializa, verifica y firma cada capa.
+## Qué la diferencia
 
-## Security by Architecture
+### 🛡️ Seguridad por defecto, no opcional
+El diferenciador central. La imagen viene endurecida de fábrica, no como un checklist que el
+usuario tiene que aplicar después:
 
-Hidralisk no agrega seguridad como capa adicional — la seguridad es la arquitectura.
+- **Kernel hardening** vía `sysctl` (ASLR completo, `kptr_restrict`, `dmesg_restrict`,
+  `kexec_load_disabled`, protección de symlinks/hardlinks, anti-spoofing de red, SYN cookies,
+  BPF JIT hardening). Ver [`HARDENING.md`](HARDENING.md).
+- **Firewall `ufw` con política `deny incoming`** activa desde el primer arranque (SSH permitido).
+- **Reconciliado con el modelo de contenedores de Vanilla** (`apx` / distrobox / podman rootless):
+  se omiten a propósito los ajustes que romperían los contenedores sin privilegios. Seguridad
+  real, sin sacrificar usabilidad.
 
-| Principio | Implementación |
-|-----------|---------------|
-| **Integridad de bloque** | dm-verity verifica cada bloque del rootfs en lectura. No alcanza con modificar archivos — el hash tree detecta manipulación a nivel de disco. |
-| **TPM binding** | El registro de capas `registry.asc` no es un archivo reemplazable: está vinculado a PCR measurements del TPM. Sin el hardware correcto, no hay boot. |
-| **Firma de configuración** | `hidra.yaml` debe estar firmado con la clave del administrador. Overmind rechaza archivos no firmados. Campos críticos (verify_boot, enforce_signing) son inmutables para el usuario. |
-| **Audit log inmutable** | Cada operación del sistema queda registrada en `/var/log/hidra/audit.log` con protección append-only vía `chattr +a`. El log sobrevive rollbacks y reinicios. |
-| **Overlay verification** | Después de montar overlays, `hidra-init` verifica hashes de binarios críticos contra el registro. Si un overlay enmascara binarios del sistema, el boot se niega. |
-| **Rollback seguro** | Protegido con rate limiting, marca de deprecated, y pre-snapshot del estado de seguridad antes de revertir. |
-| **Build pipeline aislado** | Self-hosted runners + HSM para firma + reproducible build attestation (SLSA Level 3). |
+### 🐚 Experiencia de terminal lista para usar
+Vanilla viene con GNOME pelado y sin terminal. Hidralisk OS trae, configurado a nivel sistema:
 
-## ¿Por qué esto es revolucionario?
+- **zsh** como shell por defecto, con `zsh-autosuggestions` + `zsh-syntax-highlighting`.
+- **Starship** con un prompt temático propio.
+- **Ptyxis** como terminal + **Hack Nerd Font**.
+- Configuración **impersonal y system-wide** (`/etc/zsh/zshrc`, `/etc/starship.toml`) — funciona
+  para cualquier usuario apenas instala, sin dotfiles que copiar.
 
-1. **Fin del "dependency hell"**: cada capa es un entorno hermético. No hay conflicto entre librerías de distintas aplicaciones porque conviven en overlays separados.
-2. **Rollback instantáneo y seguro**: si una actualización rompe algo, `hidra-rollback` te devuelve al estado anterior en segundos. No hay "broken system after apt upgrade".
-3. **Seguridad por arquitectura**: el sistema base es de solo lectura. Un compromiso de `root` no puede modificar binarios del sistema porque la capa base está firmada y montada readonly. Los overlays de sesión se descartan al reiniciar.
-4. **Reproducibilidad**: `hidra.yaml` + un tag de repositorio = la misma máquina siempre. Adiós al "works on my machine".
-5. **Puente entre mundos**: no tenés que elegir entre la inmutabilidad de Nix y el ecosistema Debian. Hidralisk te da ambos.
+### 🐉 Identidad propia de punta a punta
+GRUB, instalador, GDM, Plymouth, wallpaper de escritorio/login/sesión live y avatar de usuario
+por defecto: todo con la marca Hidralisk (el dragón). Nada de "Vanilla OS" residual a la vista.
+
+---
+
+## Arquitectura en una imagen
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Capa Hidralisk  (lo que construimos nosotros)           │
+│  · hardening (sysctl + ufw)   · shell (zsh+starship)     │
+│  · branding (GRUB/GDM/Plymouth/wallpaper/avatar)         │
+├─────────────────────────────────────────────────────────┤
+│  Base Vanilla OS 2  (heredado, maduro)                   │
+│  · ABRoot (A/B atómico, rollback)   · GNOME              │
+│  · lpkg (capa de paquetes)   · apx (contenedores)        │
+│  · composefs / fs-verity (integridad)                    │
+└─────────────────────────────────────────────────────────┘
+```
+
+- **ABRoot** — dos roots (A/B); cada update es transaccional y reversible.
+- **lpkg** — bloquea/desbloquea la capa de paquetes del sistema base (así inyectamos nuestro stack).
+- **apx** — instalar software *encima* en contenedores rootless, sin tocar el sistema base.
+- **composefs + fs-verity** — integridad del sistema de archivos heredada de Vanilla.
+
+Detalle del stack y decisiones de diseño: [`docs/adr/`](docs/adr/).
+
+## Cómo se construye
+
+Hidralisk OS se arma con dos artefactos, ambos buildeados en infraestructura propia:
+
+| Artefacto | Qué es | Dónde |
+|---|---|---|
+| **Imagen OCI** | El sistema en sí, derivado de Vanilla vía [Vib](https://github.com/Vanilla-OS/Vib) | [`vib/`](vib/) → `ghcr.io/hidr4lisk/hidralisk-os` |
+| **ISO instalable** | Medio de instalación que despliega la imagen OCI | [`iso/`](iso/) |
+
+```bash
+# Imagen (resumen — ver vib/README.md)
+./vib-amd64 build vib/recipe.yml          # receta → Containerfile
+podman build -t hidralisk-os -f vib/Containerfile vib/
+# La ISO usa el toolchain live de Vanilla con nuestros hooks (ver iso/README.md)
+```
+
+El instalador baja la imagen OCI publicada en GHCR (que **debe permanecer pública**) y la despliega
+en disco con ABRoot.
+
+## Roadmap
+
+Lo que viene (escritorio tipo tradicional, app de estado del sistema, más fases de hardening) está
+en [`ROADMAP.md`](ROADMAP.md).
+
+## Licencia
+
+[MIT](LICENSE).

@@ -83,7 +83,7 @@ stages:
           - update-initramfs -u
           - systemctl enable ssh
           # Spike-7 hardening: postura de seguridad POR DEFECTO (el diferenciador del SO).
-          # sysctl endurecido (HARDENING.md de ZeroCool, reconciliado con apx: NO se tocan
+          # sysctl endurecido (ver HARDENING.md, reconciliado con apx: NO se tocan
           # userns/bpf que romperían distrobox/podman). Firewall ufw default-deny incoming +
           # SSH permitido (la imagen trae openssh-server). Se evita `ufw enable` (carga reglas,
           # falla en el build): se setea ENABLED=yes + se habilita el servicio (aplica al boot).

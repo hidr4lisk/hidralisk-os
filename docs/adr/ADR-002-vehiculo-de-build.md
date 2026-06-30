@@ -1,16 +1,16 @@
-# ADR-002 — Vehículo de build: pivotar de bootc-on-Debian a Vib/Vanilla
+# ADR-002 — Vehículo de build: Vib/Vanilla
 
 - **Estado:** ✅ Aceptada (fede, 2026-06-29) · **Fecha:** 2026-06-29
-- **Depende de:** [ADR-001](ADR-001-base-tecnologica.md) (aceptado: "construir sobre lo existente, no de cero")
-- **Origen:** resultados del Spike-1/2 en el Laboratorio (192.168.0.7, KVM)
+- **Origen:** resultados de un spike de validación en el Laboratorio (192.168.0.7, KVM)
 
 ---
 
 ## 1. Contexto
 
-ADR-001 decidió **no** construir init/pkg-mgr/integridad propios, sino derivar de tecnología
-inmutable existente. El candidato concreto era **bootc-on-Debian** (`ghcr.io/bootcrew/debian-bootc`
-+ `bootc-image-builder`). El spike fue a validarlo en el Lab.
+**Principio fundacional del proyecto:** no construir init/pkg-mgr/integridad propios, sino derivar
+de tecnología inmutable existente (madura y mantenida). El primer candidato concreto fue
+**bootc-on-Debian** (`ghcr.io/bootcrew/debian-bootc` + `bootc-image-builder`). El spike fue a
+validarlo en el Lab.
 
 ## 2. Qué pasó en el spike (evidencia)
 
@@ -38,24 +38,27 @@ Por qué:
 - **Es Debian inmutable EN PRODUCCIÓN** (Vanilla OS 2), no un experimento.
 - **`apt` funciona**: Vib instala paquetes en una etapa Debian normal (con DB de dpkg real) antes de
   sellar la imagen → resuelve la pared #1, que era la bloqueante.
-- Sigue siendo **OCI + atómico + A/B** (la tesis del ADR-001 intacta).
+- Sigue siendo **OCI + atómico + A/B** (el principio fundacional intacto).
 - No nos atamos a tooling RHEL que asume SELinux.
 
 ## 4. Alternativas descartadas
 
 - **Forkear `bootcrew/mono` y arreglarlo** — adoptar el mantenimiento del experimento ajeno (DB de
   dpkg, deployment ostree roto, etc.). Mucho riesgo, poco control.
-- **Construir nuestra propia base Debian-bootc de cero** — contradice ADR-001 (no reinventar la plomería).
+- **Construir nuestra propia base Debian-bootc de cero** — contradice el principio fundacional (no reinventar la plomería).
 - **Esperar a que `debian-bootc` madure** — nos bloquea hoy; lo re-evaluamos más adelante (la tecnología
   de fondo es la correcta, solo está verde para Debian).
 
 ## 5. Consecuencias
 
-- El `spike/` actual (Containerfile bootc) queda como **registro del experimento**, no como base.
-- **Próximo paso (Spike-3):** una receta **Vib** mínima que produzca una imagen Hidralisk OS con
-  nuestros paquetes + el `hardening.sysctl`, y bootearla (ISO live / ABRoot) en la KVM del Lab.
-- `THREAT_MODEL.md` / `HARDENING.md` siguen siendo el diferenciador y se materializan como módulos Vib.
-- Revisar bootc-on-Debian en ~6-12 meses; si madura, es el destino natural a largo plazo.
+- El experimento bootc quedó como aprendizaje (la tecnología de fondo es correcta, solo está verde
+  para Debian), no como base del proyecto.
+- **Vehículo de build:** receta [Vib](https://vib.vanillaos.org/) → imagen OCI
+  (`ghcr.io/hidr4lisk/hidralisk-os`) + ISO custom. Ver [`../../vib/README.md`](../../vib/README.md)
+  e [`../../iso/README.md`](../../iso/README.md).
+- El **hardening** ([`../../HARDENING.md`](../../HARDENING.md)) es el diferenciador y se materializa
+  como pasos del recipe Vib.
+- Revisar bootc-on-Debian en ~6-12 meses; si madura, es un destino natural a largo plazo.
 
 ## 6. Estado de validación
 
@@ -105,8 +108,12 @@ Por qué:
   zsh-autosuggestions + zsh-syntax-highlighting + Hack Nerd Font + **Ptyxis** (terminal), config
   **system-wide** (`/etc/zsh/zshrc` + `/etc/starship.toml`), neutra (sin nada personal). El cambio
   de shell del usuario instalado lo hace el oneshot de firstboot.
+- [x] **Spike-7 — hardening por defecto ✅ source (2026-06-30).** El diferenciador real,
+  materializado en el recipe: `sysctl` endurecido (`vib/sources/hidralisk/hardening/99-hidra-hardening.conf`)
+  + `ufw default-deny incoming`, **reconciliado con `apx`** (se omiten userns/bpf que romperían los
+  contenedores rootless). Detalle → [`../../HARDENING.md`](../../HARDENING.md). Falta el build de la
+  imagen con esta capa + el showcase de instalación end-to-end (ver [`../../ROADMAP.md`](../../ROADMAP.md)).
 - [ ] **Pendiente:** botón final "Install Vanilla OS" dentro del instalador (en
-  `vanilla-installer.gresource` → requiere build propio del instalador); splash "powering off" de
-  la **sesión live** (Plymouth de la ISO, es otro asset distinto de la flor ya cazada); verificar
-  que el fondo del login GDM renderice en el greeter; y el **diferenciador real**:
-  hardening/seguridad por defecto (`THREAT_MODEL.md` / `HARDENING.md` como módulos Vib).
+  `vanilla-installer.gresource` → requiere build propio del instalador); verificar que el fondo del
+  login GDM renderice en el greeter; fases siguientes de hardening y experiencia de escritorio
+  (ver [`../../ROADMAP.md`](../../ROADMAP.md)).
