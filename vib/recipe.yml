@@ -82,6 +82,10 @@ stages:
           - sed -i 's|^SHELL=.*|SHELL=/usr/bin/zsh|' /etc/default/useradd
           - update-initramfs -u
           - systemctl enable ssh
+          # App de estado propia ("super neofetch"): hidrafetch describe ESTA instalación
+          # (hardware + postura de hardening + integridad ABRoot). Solo stdlib de python3
+          # (ya en la base), impersonal. Se instala como comando del sistema.
+          - install -Dm755 /sources/hidralisk/status/hidrafetch /usr/bin/hidrafetch
           # Spike-7 hardening: postura de seguridad POR DEFECTO (el diferenciador del SO).
           # sysctl endurecido (ver HARDENING.md, reconciliado con apx: NO se tocan
           # userns/bpf que romperían distrobox/podman). Firewall ufw default-deny incoming +

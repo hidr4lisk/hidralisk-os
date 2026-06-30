@@ -46,8 +46,13 @@ Falta (necesita Lab): verificar nombres de paquete + UUIDs + claves exactas (cam
 ajustar el override, wirearlo al `recipe.yml` y buildear. No está en el recipe activo todavía para no
 arriesgar el build de Spike-7.
 
-## App de estado del sistema (backlog)
+## App de estado del sistema — ✅ `hidrafetch`
 
-Una app/CLI que venga **por defecto** para ver el estado de cualquier instalación de Hidralisk OS
-(hardware, red, firewall, servicios, salud, integridad de ABRoot): un *neofetch con esteroides*,
-branded (dragón, colores) e **impersonal**. La cara "consciente de sí misma" del sistema.
+La cara "consciente de sí misma" del sistema: un *neofetch con esteroides* que viene por defecto y
+describe **esta** instalación (impersonal, no multi-máquina). Foco en el diferenciador: **postura de
+hardening** (sysctl + ufw, con veredicto ENDURECIDO/PARCIAL) e **integridad ABRoot** (A/B + imagen),
+más hardware. Dragón derivado del logo, sin dependencias externas (stdlib de python3).
+
+`vib/sources/hidralisk/status/hidrafetch` — **wireado al recipe** (`/usr/bin/hidrafetch`). Pendiente:
+decidir si saluda al abrir la terminal (ver `status/README.md`) y, más adelante, ampliarlo (servicios,
+salud, red local).

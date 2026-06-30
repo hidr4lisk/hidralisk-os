@@ -1,0 +1,316 @@
+#!/usr/bin/env python3
+"""
+hidrafetch — el estado de ESTE Hidralisk OS, de un vistazo.
+
+Un "super neofetch" que viene con el sistema: describe la instalación local
+(no es un inventario de varias máquinas) y pone el foco en lo que hace único a
+Hidralisk OS — la postura de seguridad por defecto y la integridad atómica (ABRoot).
+
+Sin dependencias externas (solo stdlib) — importante en una base inmutable donde
+no se hace `pip install`. Degrada con elegancia si algo no está disponible.
+
+Uso:  hidrafetch            # vista completa
+      hidrafetch --plain    # sin color (para pipes/logs)
+      hidrafetch --no-art   # sin el dragón
+"""
+
+import os
+import sys
+import shutil
+import subprocess
+
+# ── Paleta ──────────────────────────────────────────────────────────────────
+_PLAIN = ("--plain" in sys.argv) or (not sys.stdout.isatty() and "--color" not in sys.argv)
+
+
+def _c(code):
+    return "" if _PLAIN else code
+
+
+R   = _c("\033[0m");    BO = _c("\033[1m");    DI = _c("\033[2m")
+RED = _c("\033[1;31m"); GRN = _c("\033[1;32m"); YEL = _c("\033[1;33m")
+CYN = _c("\033[1;36m"); WHT = _c("\033[1;37m"); MAG = _c("\033[1;35m")
+DRG = _c("\033[1;36m")  # color del dragón
+
+# ── El dragón (derivado del logo Hidralisk) ─────────────────────────────────
+DRAGON = r"""
+                     ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▄
+                     ▀▄              ▀█
+                       ▀▄        ▄▄    ▀▄
+                     ▄▀          ████   ▀▄
+          ▄▄▄▄       ▄▄▄          ▀▀      ▄
+        ▄▀    ▀▄▄       ▀█                 █
+      ▄▀         ▀▄      █      ▄▄▄        █
+    ▄▀             ▀▄▄   █      ▀  ▀▄▄   ▄▄
+  ▄▀                  ▀  █      █     ▀▀▀
+▄▀        ▄▄▄            █       ▄
+█▄▄ ▀▀▀▀▀ ▄▀             ▀        ▀▄
+        ▄▀             █  ▄         ▀▀▄
+       █               ▀  ▀            ▀▀▄
+       ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀  ▀▄             ▀▄
+                            ▀▄              █
+                              ▀▄             █
+                                █            █
+                        ▄▄▄▄▄▄▄ ▀            █
+       ▄▄▄▄▄▄▄  ▀▀▀▀▀▀▀                      █
+▄▀▀▀▀▀                                      ▄
+█                                         ▄▀
+""".strip("\n").splitlines()
+DRAGON_W = max((len(l) for l in DRAGON), default=0)
+
+
+# ── Helpers de lectura (defensivos) ─────────────────────────────────────────
+def run(cmd, timeout=4):
+    """Corre un comando y devuelve stdout (str) o '' si falla/no existe."""
+    try:
+        out = subprocess.run(cmd, shell=True, capture_output=True, text=True,
+                             timeout=timeout)
+        return out.stdout.strip()
+    except Exception:
+        return ""
+
+
+def read(path):
+    try:
+        with open(path) as f:
+            return f.read().strip()
+    except Exception:
+        return ""
+
+
+def sysctl(key):
+    """Lee un sysctl directo de /proc/sys (no necesita el binario ni root)."""
+    return read("/proc/sys/" + key.replace(".", "/"))
+
+
+def have(binary):
+    return shutil.which(binary) is not None
+
+
+def human(n):
+    n = float(n)
+    for u in ("B", "KB", "MB", "GB", "TB"):
+        if n < 1024:
+            return f"{n:.1f} {u}"
+        n /= 1024
+    return f"{n:.1f} PB"
+
+
+def bar(pct, width=18):
+    pct = min(max(float(pct), 0), 100)
+    fill = int(width * pct / 100)
+    col = RED if pct >= 90 else (YEL if pct >= 70 else GRN)
+    return f"{col}{'█' * fill}{R}{DI}{'░' * (width - fill)}{R} {col}{pct:4.1f}%{R}"
+
+
+def dot(ok):
+    return f"{GRN}●{R}" if ok else f"{YEL}●{R}"
+
+
+# ── Recolección de datos ────────────────────────────────────────────────────
+def os_release():
+    d = {}
+    for line in read("/etc/os-release").splitlines():
+        if "=" in line:
+            k, _, v = line.partition("=")
+            d[k] = v.strip().strip('"')
+    return d
+
+
+def gather_facts():
+    osr = os_release()
+    f = []
+
+    pretty = osr.get("PRETTY_NAME") or osr.get("NAME") or "Hidralisk OS"
+    f.append(("OS", pretty))
+    if osr.get("ID") == "vanilla":
+        f.append(("Base", "Vanilla OS 2 (ABRoot)"))
+    else:
+        f.append(("Base", osr.get("ID_LIKE") or osr.get("ID") or "n/d"))
+
+    kver = read("/proc/sys/kernel/osrelease")
+    if kver:
+        f.append(("Kernel", kver))
+
+    # uptime
+    up = read("/proc/uptime").split()
+    if up:
+        secs = int(float(up[0]))
+        d, secs = divmod(secs, 86400)
+        h, secs = divmod(secs, 3600)
+        m, _ = divmod(secs, 60)
+        parts = [f"{d}d" for _ in (1,) if d] + [f"{h}h" for _ in (1,) if h] + [f"{m}m"]
+        f.append(("Uptime", " ".join(parts)))
+
+    # paquetes (capa apt sobre la base inmutable)
+    pkgs = run("dpkg-query -f '.\\n' -W 2>/dev/null | wc -l")
+    if pkgs and pkgs.isdigit() and int(pkgs) > 0:
+        f.append(("Paquetes", f"{pkgs} (apt)"))
+
+    f.append(("Shell", os.path.basename(os.environ.get("SHELL", "")) or "n/d"))
+
+    de = os.environ.get("XDG_CURRENT_DESKTOP", "")
+    sess = os.environ.get("XDG_SESSION_TYPE", "")
+    if de:
+        f.append(("Escritorio", f"{de}" + (f" ({sess})" if sess else "")))
+
+    term = os.environ.get("TERM_PROGRAM") or ("Ptyxis" if have("ptyxis") else "") \
+        or os.environ.get("TERM", "")
+    if term:
+        f.append(("Terminal", term))
+
+    # CPU
+    model, cores = "", 0
+    for line in read("/proc/cpuinfo").splitlines():
+        if line.startswith("model name") and not model:
+            model = line.split(":", 1)[1].strip()
+        if line.startswith("processor"):
+            cores += 1
+    if model:
+        f.append(("CPU", f"{model}" + (f"  ({cores} hilos)" if cores else "")))
+
+    # RAM
+    mem = {}
+    for line in read("/proc/meminfo").splitlines():
+        k, _, v = line.partition(":")
+        mem[k] = int(v.strip().split()[0]) if v.strip() else 0
+    if mem.get("MemTotal"):
+        used = mem["MemTotal"] - mem.get("MemAvailable", 0)
+        pct = used / mem["MemTotal"] * 100
+        f.append(("RAM", f"{bar(pct)}  {DI}{human(used*1024)} / {human(mem['MemTotal']*1024)}{R}"))
+
+    # Disco /
+    try:
+        t, u, _ = shutil.disk_usage("/")
+        f.append(("Disco /", f"{bar(u/t*100)}  {DI}{human(u)} / {human(t)}{R}"))
+    except Exception:
+        pass
+
+    return f
+
+
+# ── Postura de seguridad (el diferenciador) ─────────────────────────────────
+HARDENING = [
+    ("ASLR (randomize_va_space)", "kernel.randomize_va_space", "2"),
+    ("kptr_restrict",             "kernel.kptr_restrict",      "2"),
+    ("dmesg_restrict",            "kernel.dmesg_restrict",     "1"),
+    ("kexec_load_disabled",       "kernel.kexec_load_disabled","1"),
+    ("ptrace_scope",              "kernel.yama.ptrace_scope",  "1"),
+    ("protected_symlinks",        "fs.protected_symlinks",     "1"),
+    ("tcp_syncookies",            "net.ipv4.tcp_syncookies",   "1"),
+    ("bpf_jit_harden",            "net.core.bpf_jit_harden",   "2"),
+]
+
+
+def gather_security():
+    rows = []
+    ok_count = 0
+    for label, key, expected in HARDENING:
+        val = sysctl(key)
+        ok = (val == expected)
+        ok_count += ok
+        shown = val if val else "n/d"
+        rows.append((dot(ok), label, shown, expected))
+
+    # Firewall (ufw): intentar status real; si no, inferir de config + servicio
+    fw = None
+    if have("ufw"):
+        st = run("ufw status 2>/dev/null").lower()
+        if "status: active" in st:
+            fw = (True, "activo · deny incoming")
+        elif st:
+            fw = (False, "inactivo")
+    if fw is None:
+        enabled = "enabled=yes" in read("/etc/ufw/ufw.conf").lower()
+        svc = run("systemctl is-enabled ufw 2>/dev/null") == "enabled"
+        if enabled or svc:
+            fw = (True, "habilitado (estado fino: requiere root)")
+        else:
+            fw = (False, "n/d")
+
+    return rows, ok_count, len(HARDENING), fw
+
+
+# ── Integridad / ABRoot ─────────────────────────────────────────────────────
+def gather_abroot():
+    if not have("abroot"):
+        return None
+    out = run("abroot status 2>/dev/null") or run("sudo -n abroot status 2>/dev/null")
+    if not out:
+        return {"raw": "(abroot presente; 'abroot status' no devolvió datos)"}
+    info = {}
+    for line in out.splitlines():
+        low = line.lower()
+        if "present" in low and "future" not in low:
+            info.setdefault("present", line.strip())
+        if "future" in low:
+            info.setdefault("future", line.strip())
+        if "image" in low and ":" in line:
+            info.setdefault("image", line.split(":", 1)[1].strip())
+        if "digest" in low:
+            info.setdefault("digest", line.split(":", 1)[1].strip())
+    info["raw"] = out
+    return info
+
+
+# ── Render ──────────────────────────────────────────────────────────────────
+def hr(title, icon=""):
+    head = f"{icon}  {title}" if icon else title
+    pad = max(0, 58 - len(head))
+    print(f"\n  {CYN}{head}{R}  {DI}{'─' * pad}{R}")
+
+
+def main():
+    no_art = "--no-art" in sys.argv
+    facts = gather_facts()
+    host = read("/proc/sys/kernel/hostname") or "hidralisk"
+
+    # Encabezado neofetch: dragón a la izq, datos a la der
+    title = f"{WHT}{host}{R} {DI}—{R} {CYN}Hidralisk OS{R}"
+    info_lines = [title, f"{DI}{'─' * 40}{R}"]
+    for k, v in facts:
+        info_lines.append(f"{BO}{k:<11}{R}{v}")
+
+    art = [] if no_art else list(DRAGON)
+    rows = max(len(art), len(info_lines))
+    print()
+    for i in range(rows):
+        left = art[i] if i < len(art) else ""
+        left = f"{DRG}{left}{R}" + " " * (DRAGON_W - len(art[i] if i < len(art) else ""))
+        right = info_lines[i] if i < len(info_lines) else ""
+        print(f"  {left}   {right}")
+
+    # Seguridad
+    rows_s, ok, total, fw = gather_security()
+    posture = GRN + "ENDURECIDO" + R if ok >= total - 1 else (YEL + "PARCIAL" + R if ok else RED + "SIN APLICAR" + R)
+    hr(f"SEGURIDAD POR DEFECTO   [{posture}{DI}]{R} {DI}· {ok}/{total} sysctl{R}", "🛡️")
+    fw_ok, fw_txt = fw
+    print(f"   {dot(fw_ok)} {BO}{'Firewall (ufw)':<26}{R}{fw_txt}")
+    for d, label, val, exp in rows_s:
+        flag = "" if val == exp else f"  {DI}(esperado {exp}){R}"
+        print(f"   {d} {BO}{label:<26}{R}{val}{flag}")
+
+    # Integridad / ABRoot
+    ab = gather_abroot()
+    hr("INTEGRIDAD ATÓMICA (ABRoot)", "🔒")
+    if ab is None:
+        print(f"   {DI}ABRoot no presente — este no parece un sistema Hidralisk/Vanilla.{R}")
+    else:
+        if ab.get("present"):
+            print(f"   {BO}{'Raíz / próxima':<16}{R}{ab['present']}")
+        if ab.get("future"):
+            print(f"   {DI}{ab['future']}{R}")
+        if ab.get("image"):
+            print(f"   {BO}{'Imagen':<16}{R}{ab['image']}")
+        if ab.get("digest"):
+            print(f"   {BO}{'Digest':<16}{R}{DI}{ab['digest'][:48]}{R}")
+        if not any(ab.get(k) for k in ("present", "image")):
+            print(f"   {DI}{ab.get('raw','')[:200]}{R}")
+    print(f"\n   {DI}Sistema base de solo lectura · updates A/B transaccionales con rollback.{R}\n")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass
