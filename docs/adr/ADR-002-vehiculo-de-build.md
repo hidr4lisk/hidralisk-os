@@ -95,5 +95,18 @@ Por qué:
      `distro_name: "Hidralisk OS"` + las 3 imágenes (`default`/`nvidia`/**`vm`**, ojo: en KVM
      dispara `vm`) → `ghcr.io/hidr4lisk/hidralisk-os`. El `abroot upgrade` manual (camino a) quedó
      descartado: en la práctica chocó con el contenedor apx read-only y el teclado por VNC.
-- [ ] Spike-5 (polish, opcional) — branding propio (pisar `/etc/os-release`, logos del instalador,
-  GRUB/Plymouth), y evaluar una base instalable más liviana que `desktop` (headless/server).
+- [x] **Spike-5 — branding ✅ (2026-06-29).** os-release ("Hidralisk OS", `ID=vanilla` intacto a
+  propósito), VSO First-Setup deshabilitado, instalador renombrado (`.desktop`, hook 079) +
+  **flor→dragón** (hook 080), GRUB "Install Hidralisk OS", logo GDM/distribuidor + watermark de
+  Plymouth (dragón blanco), **wallpaper** (escritorio + login GDM + sesión live de la ISO) con
+  dragón + "Hidralisk OS", y **avatar** de usuario por defecto (oneshot `hidralisk-firstboot`,
+  UID 1000). Assets en `vib/sources/hidralisk/branding/` + hooks en `iso/`.
+- [x] **Spike-6 — shell por defecto ✅ (2026-06-29).** zsh + starship (tema Hidralisk) +
+  zsh-autosuggestions + zsh-syntax-highlighting + Hack Nerd Font + **Ptyxis** (terminal), config
+  **system-wide** (`/etc/zsh/zshrc` + `/etc/starship.toml`), neutra (sin nada personal). El cambio
+  de shell del usuario instalado lo hace el oneshot de firstboot.
+- [ ] **Pendiente:** botón final "Install Vanilla OS" dentro del instalador (en
+  `vanilla-installer.gresource` → requiere build propio del instalador); splash "powering off" de
+  la **sesión live** (Plymouth de la ISO, es otro asset distinto de la flor ya cazada); verificar
+  que el fondo del login GDM renderice en el greeter; y el **diferenciador real**:
+  hardening/seguridad por defecto (`THREAT_MODEL.md` / `HARDENING.md` como módulos Vib).
