@@ -14,6 +14,9 @@ mediante una ISO custom. Lo que ya funciona:
 | Branding completo (os-release, GRUB, instalador, GDM, Plymouth, wallpaper, avatar) | ✅ |
 | Shell por defecto (zsh + starship + Ptyxis + Hack Nerd Font, system-wide) | ✅ |
 | Hardening por defecto (sysctl + ufw) — ver [`HARDENING.md`](HARDENING.md) | ✅ en imagen |
+| Escritorio "tipo Mint" (Dash to Panel + Arc Menu, menú = dragón) | ✅ en imagen (Spike-8) |
+| Boot limpio: FsGuard desactivado (su filelist firmado por Vanilla no es re-firmable) | ✅ en imagen (Spike-8) |
+| `abroot upgrade` apunta a nuestra imagen (`ghcr.io/hidr4lisk/hidralisk-os`) | ✅ en imagen (Spike-8) |
 
 ## Próximo
 
@@ -37,21 +40,20 @@ El hardening es iterativo. Las próximas capas (blacklist de módulos, `auditd`,
 GRUB, AppArmor profiles, minimización de servicios) están detalladas en
 [`HARDENING.md`](HARDENING.md#roadmap-de-hardening-fases-siguientes).
 
-## Experiencia de escritorio "tipo Linux Mint" — 🟡 preparado, pendiente Lab
+## Experiencia de escritorio "tipo Linux Mint" — ✅ wireado + buildeado (Spike-8)
 
-GNOME pelado (lo que trae Vanilla) es minimalista. La idea es ofrecer una experiencia **más
-tradicional, tipo Linux Mint**: **panel arriba** con menú de apps + taskbar + bandeja, y el
-**botón de menú = el dragón Hidralisk**. Vía **Dash to Panel** + **Arc Menu** + dconf system-wide.
+GNOME pelado (lo que trae Vanilla) es minimalista. Ofrecemos una experiencia **más tradicional,
+tipo Linux Mint**: **panel arriba** con menú de apps + taskbar + bandeja, y el **botón de menú = el
+dragón Hidralisk**. Vía **Dash to Panel** + **Arc Menu** + override dconf system-wide.
 
-Ya hecho (en `vib/sources/hidralisk/branding/desktop/`):
-- ✅ **Ícono de menú** (dragón blanco, lee bien hasta ~44px) — `menu-icon-white-{256,512}.png`.
-- ✅ **Override dconf** borrador (`95_hidralisk-desktop.gschema.override`) — habilita las extensiones,
-  panel arriba, ArcMenu con el dragón.
-- ✅ **Plan de integración + checklist** de verificación → `desktop/README.md`.
+Verificado contra **GNOME Shell 49** (paquetes Debian `gnome-shell-extension-dash-to-panel` +
+`gnome-shell-extension-arc-menu`; UUIDs `dash-to-panel@jderose9.github.com` + `arcmenu@arcmenu.com`)
+y wireado al `recipe.yml`:
+- ✅ **Ícono de menú** (dragón blanco) — `menu-icon-white-256.png` → `/usr/share/hidralisk/menu-icon.png`.
+- ✅ **Override** `95_hidralisk-desktop.gschema.override` — habilita las extensiones (conserva `vso@`),
+  panel arriba (`panel-positions`), ArcMenu layout `Mint` con el dragón como botón. Compila sin error.
 
-Falta (necesita Lab): verificar nombres de paquete + UUIDs + claves exactas (cambian por versión),
-ajustar el override, wirearlo al `recipe.yml` y buildear. No está en el recipe activo todavía para no
-arriesgar el build de Spike-7.
+Pendiente: re-test en vivo (que el panel renderice como se espera en una instalación limpia).
 
 ## App de estado del sistema — ✅ `hidrafetch`
 
