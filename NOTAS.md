@@ -653,3 +653,28 @@ make qa                            # lint + quick-test + smoke-test
 sudo make build                    # pipeline completo → ISO
 make smoke-test                    # verifica artefactos
 ```
+
+---
+
+## Backlog / Ideas (fede, 2026-06-30)
+
+### `hidra.py` → app de estado por defecto ("super neofetch") — NO prioritario
+El `~/Compartida/HIDRA/hidra.py` (hoy es la herramienta de setup/diagnóstico del Lab de fede)
+hay que **adaptarlo como app que venga POR DEFECTO en Hidralisk OS**: un panel/CLI para ver el
+**estado de cualquier instalación** de la distro (hardware, red, firewall, servicios, salud,
+integridad ABRoot, etc.). Tipo un **neofetch con esteroides**, pero:
+- **impersonal** (sacarle todo lo específico del Lab/jarvis de fede),
+- **hermoseado** (branding Hidralisk, dragón, colores),
+- shippeado con el sistema (paquete/módulo Vib).
+Es la cara "consciente de sí misma" del SO. **No es prioridad ahora** — anotado para no perderlo.
+
+### Experiencia de escritorio "tipo Linux Mint" (fede, 2026-06-30)
+GNOME pelado (lo que trae Vanilla) es minimalista (top bar + Activities). fede quiere una
+experiencia **más tradicional tipo Linux Mint**:
+- **Panel arriba** con menú de apps + lista de ventanas (taskbar) + bandeja de sistema.
+- **Botón del menú = nuestro ícono** (el dragón Hidralisk).
+Implementación probable (en el recipe, vía extensiones GNOME + dconf preconfigurado):
+- **Dash to Panel** (`gnome-shell-extension-dashtopanel`) → panel arriba con taskbar.
+- **Arc Menu** (`gnome-shell-extension-arcmenu`) → menú estilo Mint, con ícono custom = dragón.
+- Preconfigurar habilitación + posición + ícono por dconf (system-wide, como el wallpaper).
+Verificar disponibilidad de los paquetes en el repo Debian primero (como se hizo con ptyxis/starship).

@@ -517,3 +517,20 @@ Hidralisk por defecto debe ser:
 6. **SANDBOXED** en sesiones de usuario (bubblewrap + seccomp + AppArmor)
 
 La seguridad NO es un feature. Es la arquitectura.
+
+---
+
+## Materialización en la imagen (Vib) — 2026-06-30
+
+Este doc es el **diseño** (mesa 177). La **materialización real** vive en:
+- **`vib/sources/hidralisk/hardening/99-hidra-hardening.conf`** → se copia a
+  `/etc/sysctl.d/99-hidra-hardening.conf` en la imagen (paso del `vib/recipe.yml`).
+- **Firewall**: `ufw default deny incoming` + `allow 22/tcp` + servicio habilitado (en el recipe).
+
+**Reconciliación con Vanilla/apx (importante):** se OMITEN a propósito las líneas que
+romperían los contenedores **rootless** de apx (distrobox/podman):
+`unprivileged_userns_clone=0`, `unprivileged_bpf_disabled=1`, `core_pattern=|/bin/false`,
+y `ptrace_scope=2` (se usa `=1`). El detalle y el porqué están comentados en el `.conf`.
+
+**Pendiente (fases siguientes):** AppArmor profiles, auditd, minimización de servicios,
+y el resto de las 12 secciones del doc que aún no se materializaron.

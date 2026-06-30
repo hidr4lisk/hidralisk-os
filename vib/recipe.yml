@@ -82,6 +82,17 @@ stages:
           - sed -i 's|^SHELL=.*|SHELL=/usr/bin/zsh|' /etc/default/useradd
           - update-initramfs -u
           - systemctl enable ssh
+          # Spike-7 hardening: postura de seguridad POR DEFECTO (el diferenciador del SO).
+          # sysctl endurecido (HARDENING.md de ZeroCool, reconciliado con apx: NO se tocan
+          # userns/bpf que romperían distrobox/podman). Firewall ufw default-deny incoming +
+          # SSH permitido (la imagen trae openssh-server). Se evita `ufw enable` (carga reglas,
+          # falla en el build): se setea ENABLED=yes + se habilita el servicio (aplica al boot).
+          - cp /sources/hidralisk/hardening/99-hidra-hardening.conf /etc/sysctl.d/99-hidra-hardening.conf
+          - ufw default deny incoming
+          - ufw default allow outgoing
+          - ufw allow 22/tcp
+          - sed -i 's/^ENABLED=.*/ENABLED=yes/' /etc/ufw/ufw.conf
+          - systemctl enable ufw
           - apt-get autoremove -y
           - apt-get clean
           - lpkg --lock

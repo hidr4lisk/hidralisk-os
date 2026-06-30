@@ -1,5 +1,25 @@
 # ESTADO — proyecto distro (ex "SpellOS")
 
+> ## ⚡ ACTUALIZACIÓN 2026-06-30 — leer ESTO primero
+>
+> **Lo de abajo (mesa 177) ya NO refleja el estado real.** El proyecto **pivoteó** y avanzó fuerte:
+>
+> - **Pivote de vehículo de build** (ver `docs/adr/ADR-002`): se descartó el stack ostree+mkosi+
+>   mmdebstrap+overmind/hidra-apt/hidra-init (los `scripts/stageN-*.sh`, `mkosi/`, `mmdebstrap/`
+>   quedan como **legacy/registro**, no como base). Ahora: **Vanilla OS 2** (ABRoot A/B atómico,
+>   OCI, composefs/fs-verity) + **Vib** (receta → imagen).
+> - **Ya es una distro FUNCIONAL** (no un whitepaper): **instala y bootea** desde nuestra imagen
+>   OCI (`ghcr.io/hidr4lisk/hidralisk-os`) con una **ISO custom**. Branding propio completo
+>   (os-release, GRUB, instalador, GDM/Plymouth, wallpaper, avatar) + **shell por defecto**
+>   (zsh + starship + Ptyxis) + **hardening** (sysctl + ufw, reconciliado con apx). Spikes 4b-7.
+> - **Pipeline real:** `vib/recipe.yml` + `iso/` (hooks). Se buildea en el Laboratorio.
+> - Estado vivo / pendientes: memoria de jarvis `hidralisk-os-build`, `docs/adr/ADR-002` §6, `NOTAS.md`.
+>
+> Lo de abajo se conserva como **registro del diseño original** del enjambre (sigue siendo útil
+> como visión de largo plazo: hardening, threat model, integridad por capas).
+
+---
+
 > **Léeme primero.** Este doc es el estado real del proyecto al sacarlo del enjambre.
 > El resto de los `.md` (README, ARCHITECTURE, BUILD, THREAT_MODEL, HARDENING, ACTION_PLAN)
 > son el **diseño** producido por la mesa 177 del enjambre. Esto de acá es la lectura fría
