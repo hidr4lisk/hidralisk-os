@@ -1,0 +1,52 @@
+name: CI
+
+# Valida lo que rompe un build: la receta Vib, la sintaxis de los hooks de la ISO,
+# y la app de estado. No buildea la imagen/ISO (eso se hace en el Laboratorio) —
+# valida que las piezas estén bien formadas antes de llegar ahí.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint (recipe · hooks · status)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: yamllint (recipe + workflows)
+        run: |
+          pip install --quiet yamllint
+          yamllint -d "{extends: relaxed, rules: {line-length: disable, document-start: disable}}" \
+            vib/recipe.yml .github/workflows/
+
+      - name: bash -n (hooks de la ISO)
+        run: |
+          for h in iso/hooks/*.chroot; do
+            bash -n "$h" && echo "  ok: $h"
+          done
+
+      - name: python compile (hidrafetch)
+        run: python3 -m py_compile vib/sources/hidralisk/status/hidrafetch
+
+  recipe:
+    name: Vib build (valida la receta)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bajar Vib
+        run: |
+          curl -fsSL -o vib https://github.com/Vanilla-OS/Vib/releases/latest/download/vib-amd64
+          chmod +x vib
+
+      - name: vib build → genera el Containerfile
+        # NOTA: `vib build` regenera vib/sources/ — acá da igual (checkout efímero);
+        # en local SIEMPRE restaurar las sources después (git checkout -- vib/sources).
+        run: |
+          ./vib build vib/recipe.yml
+          test -s vib/Containerfile
+          echo "✅ Receta válida — Containerfile generado ($(wc -l < vib/Containerfile) líneas)"

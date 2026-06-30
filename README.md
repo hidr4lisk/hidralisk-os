@@ -1,5 +1,7 @@
 # Hidralisk OS
 
+[![CI](https://github.com/hidr4lisk/hidralisk-os/actions/workflows/ci.yml/badge.svg)](https://github.com/hidr4lisk/hidralisk-os/actions/workflows/ci.yml)
+
 **Distribución Linux inmutable, atómica y endurecida por defecto** — construida sobre
 [Vanilla OS 2](https://vanillaos.org), con identidad, shell y postura de seguridad propias.
 
