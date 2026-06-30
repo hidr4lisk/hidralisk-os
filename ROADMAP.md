@@ -20,6 +20,11 @@ mediante una ISO custom. Lo que ya funciona:
 - **Showcase de instalación end-to-end** desde la ISO: verificar en una instalación limpia que GRUB,
   instalador, GDM (avatar + fondo), escritorio (wallpaper), terminal (zsh + starship) y la postura de
   seguridad (`sysctl`/`ufw`) quedan todos correctos.
+- **Branding del instalador (gresource)** — pendientes confirmados en vivo (2026-06-30), viven en
+  `vanilla-installer.gresource` → requieren build propio del instalador:
+  1. El botón final del resumen dice **"Install Vanilla"** → debe decir **"Install Hidralisk OS"**.
+  2. Durante la instalación se ven las **imágenes/slideshow de Vanilla** → sacarlas y dejar por
+     defecto **"show console output"** (que se vea el código directo, no las imágenes de Vanilla).
 - **Test de `apx` post-instalación** — confirmar que instalar software en contenedores rootless
   funciona con el hardening aplicado (es la razón por la que se omiten ciertos `sysctl`).
 - ~~**CI** — workflow que valide la receta en cada push~~ ✅ hecho (`.github/workflows/ci.yml`:
