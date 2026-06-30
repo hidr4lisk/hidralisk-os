@@ -15,6 +15,8 @@ cp <este-repo>/iso/hooks/*.chroot etc/config/hooks/live/
 chmod +x etc/config/hooks/live/*.chroot
 # menú GRUB de la ISO (rebrand)
 cp <este-repo>/iso/bootloaders/grub-pc/grub.cfg etc/config/bootloaders/grub-pc/grub.cfg
+# overlay de la sesión live (wallpaper del instalador)
+cp -r <este-repo>/iso/includes.chroot/. etc/config/includes.chroot/
 docker run --privileged -i -v /proc:/proc -v ${PWD}:/working_dir -w /working_dir \
   ghcr.io/vanilla-os/pico:main /bin/bash -s etc/terraform.conf < build.sh
 # → builds/amd64/VanillaOS-2-stable.YYYYMMDD.iso  (instala Hidralisk OS directo)
@@ -32,11 +34,15 @@ docker run --privileged -i -v /proc:/proc -v ${PWD}:/working_dir -w /working_dir
   ícono `flower` del instalador (`distro_logo`) por el dragón (SVG negro embebido).
   **Es un hook (no `includes.chroot`)** porque el `.deb` del instalador se instala en el
   hook 001, *después* de los includes — así que el overlay se pisaba; el hook corre al final.
+- **`hooks/081-hidralisk-live-wallpaper.chroot`** *(branding, Spike-6)* — recompila los schemas
+  para que el wallpaper de la **sesión live del instalador** sea el de Hidralisk. El PNG y el
+  override van por `includes.chroot` (acá sí sirve: ningún paquete los pisa).
 - **`bootloaders/grub-pc/grub.cfg`** *(branding, Spike-5)* — menú de boot de la ISO:
   `menuentry "Install Hidralisk OS"` (+ Safe Graphics / Nouveau).
 
 Detalle y lecciones (core no es instalable, patrón `lpkg`, etc.) → `docs/adr/ADR-002` §6.
 
-> **Pendiente de branding (no resuelto acá):** botón final "Install Vanilla OS" dentro del
-> instalador (vive en `vanilla-installer.gresource`, requiere build propio del instalador),
-> logo de GDM y splash de Plymouth (requieren el asset del logo Hidralisk).
+> **Pendiente de branding:** botón final "Install Vanilla OS" dentro del instalador (vive en
+> `vanilla-installer.gresource`, requiere build propio del instalador). El logo de GDM, el splash
+> de Plymouth, el wallpaper (escritorio + login + sesión live) y el avatar ya están resueltos
+> (en la imagen vía `vib/`, salvo el wallpaper de la sesión live que es de la ISO).
