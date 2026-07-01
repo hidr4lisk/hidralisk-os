@@ -1,0 +1,20 @@
+#!/bin/sh
+# Hidralisk OS — 'apt' de cortesía. El sistema base es INMUTABLE (solo lectura),
+# así que no hay apt tradicional. Este shim explica cómo instalar software.
+# (se invoca como 'apt' y 'apt-get').
+cat >&2 <<'EOF'
+
+  Hidralisk OS es un sistema INMUTABLE: la base es de solo lectura, así que
+  no se instala con apt. Elegí según qué necesites:
+
+    • App de escritorio:   flatpak install <app>        (o abrí "Software")
+    • Herramienta de CLI:  apx  — un entorno tipo apt en un contenedor:
+                             apx subsystems new --stack vanilla    (una sola vez)
+                             apx <nombre> enter                    (entrás al entorno)
+                             # adentro sí funciona apt normalmente
+    • Agregar a la base:   sudo abroot pkg add <paquete>   (avanzado; requiere reboot)
+
+  Más info: https://github.com/hidr4lisk/hidralisk-os
+
+EOF
+exit 127
