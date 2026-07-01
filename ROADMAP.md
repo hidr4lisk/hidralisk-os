@@ -28,13 +28,17 @@ mediante una ISO custom. Lo que ya funciona:
   detecta por UID≥1000.)
 - ~~**Test de `apx` post-instalación**~~ ✅ **verificado**: creó un subsistema alpine rootless con el hardening
   puesto e instaló+corrió software (`podman rootless=true`). El "apt alternativo" funciona.
-- **Branding del instalador (gresource)** — pendientes confirmados en vivo (2026-06-30), viven en
-  `vanilla-installer.gresource` → requieren build propio del instalador:
-  1. El botón final del resumen dice **"Install Vanilla"** → debe decir **"Install Hidralisk OS"**.
+- **Branding del instalador (gresource)** — el string está en `confirm.ui`, compilado dentro de
+  `vanilla-installer.gresource`:
+  1. Botón de confirmación **"Install Vanilla OS"** → **"Install Hidralisk OS"**: 🟡 **hook `082`
+     escrito** (`iso/hooks/082-hidralisk-installer-confirm.chroot`: extrae → `sed` → recompila el
+     gresource). **Pendiente validar en un build de ISO en el Lab.**
   2. Durante la instalación se ven las **imágenes/slideshow de Vanilla** → sacarlas y dejar por
-     defecto **"show console output"** (que se vea el código directo, no las imágenes de Vanilla).
-- **Pulido de `hidrafetch`**: `Shell n/d`, línea "Imagen" vacía, y fuga de ANSI de `abroot` en la sección
-  de integridad.
+     defecto **"show console output"**. ⬜ Falta investigar el mecanismo (progress/slideshow) en el Lab.
+- ~~**Pulido de `hidrafetch`**~~ ✅ **arreglado** (`Shell` del passwd, imagen desde `abroot.json`, strip de
+  ANSI de `abroot`). ⚠️ **Falta rebuild `--no-cache`**: cambiar solo un archivo bajo `vib/sources/` NO
+  produce imagen nueva (podman cachea la capa `RUN`; el `--mount` no invalida el cache) → el próximo build
+  de imagen debe ser `podman build --no-cache`.
 - ~~**CI** — workflow que valide la receta en cada push~~ ✅ hecho (`.github/workflows/ci.yml`:
   yamllint + validación de estructura del recipe (PyYAML) + `bash -n` de los hooks + compile de
   hidrafetch). Offline/determinístico; el `vib build` real se corre en el Laboratorio.

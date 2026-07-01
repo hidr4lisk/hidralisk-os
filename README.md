@@ -11,7 +11,8 @@ Hidralisk OS no reinventa el sistema operativo: parte de una base inmutable madu
 de punta a punta. El sistema base es de solo lectura y se actualiza de forma transaccional;
 si algo sale mal, el rollback es atómico.
 
-> Estado: **funcional**. Instala y bootea desde nuestra imagen OCI con una ISO custom.
+> Estado: **funcional, verificado end-to-end**. Instala desde una ISO custom, **bootea limpio** y
+> corre con todo su diferenciador puesto: hardening por defecto, escritorio propio y `apx` operativo.
 > En desarrollo activo — ver [`ROADMAP.md`](ROADMAP.md).
 
 ---
@@ -38,6 +39,18 @@ Vanilla viene con GNOME pelado y sin terminal. Hidralisk OS trae, configurado a 
 - **Ptyxis** como terminal + **Hack Nerd Font**.
 - Configuración **impersonal y system-wide** (`/etc/zsh/zshrc`, `/etc/starship.toml`) — funciona
   para cualquier usuario apenas instala, sin dotfiles que copiar.
+
+### 🖥️ Escritorio tradicional, tipo Mint
+El GNOME pelado de Vanilla se convierte en una experiencia familiar, sin configurar nada:
+
+- **Panel arriba** con menú de apps + taskbar + bandeja (Dash to Panel).
+- **Menú de aplicaciones estilo Mint** cuyo botón es el dragón Hidralisk (Arc Menu).
+- Todo por defecto vía `dconf` system-wide; el usuario lo puede cambiar cuando quiera.
+
+### 📟 Se conoce a sí misma — `hidrafetch`
+Un *neofetch con esteroides* que viene con el sistema y describe **esta** instalación: hardware,
+**postura de hardening** (con veredicto `ENDURECIDO`/`PARCIAL`) e **integridad ABRoot** (A/B + imagen).
+Solo stdlib de Python, sin dependencias externas.
 
 ### 🐉 Identidad propia de punta a punta
 GRUB, instalador, GDM, Plymouth, wallpaper de escritorio/login/sesión live y avatar de usuario
@@ -88,8 +101,8 @@ en disco con ABRoot.
 
 ## Roadmap
 
-Lo que viene (escritorio tipo tradicional, app de estado del sistema, más fases de hardening) está
-en [`ROADMAP.md`](ROADMAP.md).
+Lo que viene (más fases de hardening, pulido del branding del instalador, mejoras de `hidrafetch`)
+está en [`ROADMAP.md`](ROADMAP.md).
 
 ## Licencia
 
