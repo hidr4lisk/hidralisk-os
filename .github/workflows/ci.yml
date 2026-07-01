@@ -45,11 +45,15 @@ jobs:
           print(f"OK - recipe '{r['name']}' - {len(stages)} stage(s) - base {stages[0]['base']}")
           PY
 
-      - name: bash -n (hooks de la ISO)
+      - name: sh -n (hooks de la ISO + scripts del repo)
         run: |
-          for h in iso/hooks/*.chroot; do
-            bash -n "$h" && echo "  ok: $h"
+          # sh (dash) es el interprete real de los hooks (#!/bin/sh) y de build.sh/apt-shim;
+          # el firstboot es #!/bin/bash. Validar cada uno con SU interprete.
+          for f in iso/hooks/*.chroot vib/build.sh vib/sources/hidralisk/apt-shim; do
+            sh -n "$f" && echo "  ok: $f"
           done
+          bash -n vib/sources/hidralisk/branding/hidralisk-firstboot \
+            && echo "  ok: vib/sources/hidralisk/branding/hidralisk-firstboot"
 
       - name: hidrafetch (compile + smoke run)
         run: |

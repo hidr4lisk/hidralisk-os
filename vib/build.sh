@@ -33,6 +33,13 @@ REMOTE=ghcr.io/hidr4lisk/hidralisk-os
 
 [ -x ./vib-amd64 ] || { echo "falta ./vib-amd64 en la raiz del repo"; exit 1; }
 
+# `vib build` vacia vib/sources y despues lo restauramos con git checkout -> cambios sin
+# commitear se PERDERIAN en silencio (y el build usaria la version del HEAD, no la tuya).
+[ -z "$(git status --porcelain vib/sources)" ] || {
+    echo "vib/sources tiene cambios sin commitear (el build los pisaria) — commitea o stashea antes"
+    exit 1
+}
+
 echo "[build] 1/3 vib build (genera vib/Containerfile; ojo: vacia vib/sources)"
 ./vib-amd64 build vib/recipe.yml
 
