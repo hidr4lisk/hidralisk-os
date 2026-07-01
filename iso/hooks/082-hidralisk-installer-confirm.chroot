@@ -1,0 +1,58 @@
+#!/bin/sh
+# Description: Hidralisk OS - rebrand de los strings "Vanilla OS" DENTRO del gresource del
+# instalador (el boton "Install Vanilla OS" de la pantalla de confirmacion, y cualquier otro
+# label ".ui" que diga "Vanilla OS"). Estan compilados en vanilla-installer.gresource, asi que
+# no alcanza con un overlay: hay que extraer -> parchear -> recompilar el gresource.
+#
+# Corre despues de 001 (que instala vanilla-installer). Es NO-FATAL: si faltan herramientas o
+# algo falla, deja el gresource original y sigue (no rompe el build de la ISO).
+# PENDIENTE: validar en un build de ISO en el Laboratorio (escrito con el Lab apagado).
+#
+# Nota de seguridad del sed: solo se reemplaza "Vanilla OS" (con espacio). Las clases/ids del
+# .ui son "VanillaConfirm", "VanillaDefaultWelcome", etc. (sin espacio) -> no se tocan.
+set -e
+
+G=/usr/share/org.vanillaos.Installer/vanilla-installer.gresource
+PREFIX=/org/vanillaos/Installer
+
+[ -f "$G" ] || { echo "[hidralisk] gresource del instalador ausente, salteo"; exit 0; }
+
+# glib-compile-resources (vive en libglib2.0-dev-bin / libglib2.0-dev); gresource en libglib2.0-bin
+if ! command -v glib-compile-resources >/dev/null 2>&1; then
+    apt-get install -y --no-install-recommends libglib2.0-dev-bin 2>/dev/null \
+      || apt-get install -y --no-install-recommends libglib2.0-dev 2>/dev/null \
+      || { echo "[hidralisk] sin glib-compile-resources, salteo (gresource sin cambios)"; exit 0; }
+fi
+
+WORK=$(mktemp -d)
+
+# extraer TODOS los recursos a un arbol que espeja los paths
+for res in $(gresource list "$G"); do
+    rel=${res#$PREFIX/}
+    mkdir -p "$WORK/$(dirname "$rel")"
+    gresource extract "$G" "$res" > "$WORK/$rel"
+done
+
+# rebrand en todos los .ui (labels/titles). "Vanilla OS" -> "Hidralisk OS"
+find "$WORK" -name '*.ui' -exec sed -i 's/Vanilla OS/Hidralisk OS/g' {} +
+
+# manifest con todos los recursos (mismo prefix) para recompilar
+MANIFEST="$WORK/hidralisk.gresource.xml"
+{
+    echo '<?xml version="1.0" encoding="UTF-8"?>'
+    echo '<gresources>'
+    echo "  <gresource prefix=\"$PREFIX\">"
+    for res in $(gresource list "$G"); do
+        echo "    <file>${res#$PREFIX/}</file>"
+    done
+    echo '  </gresource>'
+    echo '</gresources>'
+} > "$MANIFEST"
+
+if glib-compile-resources --target="$G" --sourcedir="$WORK" "$MANIFEST" 2>/dev/null; then
+    echo "[hidralisk] gresource instalador: 'Vanilla OS' -> 'Hidralisk OS' (confirm.ui + labels)"
+else
+    echo "[hidralisk] WARN: fallo recompilar el gresource, queda el original"
+fi
+
+rm -rf "$WORK"
