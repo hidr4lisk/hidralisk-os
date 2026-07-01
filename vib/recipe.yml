@@ -34,7 +34,12 @@ stages:
           # base `desktop` = capa de paquetes TRABADA → destrabar para apt, retrabar al final
           - lpkg --unlock
           - apt-get update
-          - apt-get install -y --no-install-recommends openssh-server ufw htop ca-certificates qemu-guest-agent spice-vdagent zsh zsh-autosuggestions zsh-syntax-highlighting ptyxis starship gnome-shell-extension-dash-to-panel gnome-shell-extension-arc-menu
+          - apt-get install -y --no-install-recommends sudo openssh-server ufw htop ca-certificates qemu-guest-agent spice-vdagent zsh zsh-autosuggestions zsh-syntax-highlighting ptyxis starship gnome-shell-extension-dash-to-panel gnome-shell-extension-arc-menu
+          # Terminal por defecto = Ptyxis ("Terminal"). La base trae 2 terminales extra (Black Box +
+          # Alacritty) → sacarlos para no confundir. apt purge por si son debs; rm del .desktop garantiza
+          # que desaparezcan del menú aunque el nombre del paquete no matchee.
+          - apt-get remove -y --purge blackbox-terminal alacritty || true
+          - rm -f /usr/share/applications/com.raggesilver.BlackBox.desktop /usr/share/applications/Alacritty.desktop
           - printf 'NAME="Hidralisk OS"\nID=hidralisk-os\nVARIANT="spike-vib"\n' > /etc/hidralisk-os-release
           # Branding: pisar el os-release (PRETTY_NAME/NAME = Hidralisk OS). Mantengo ID=vanilla
           # a propósito → abroot/vso/lpkg keyean por ese ID; cambiarlo los rompería. /etc/os-release
@@ -45,6 +50,10 @@ stages:
           # Eso es frágil en VM (distrobox+podman rootless+--init) y NO es core de Hidralisk OS).
           # Quitando el autostart de /etc/skel, ningún usuario nuevo lo corre → login directo al escritorio.
           - rm -f /etc/skel/.config/autostart/org.vanillaos.FirstSetup.autostart.desktop
+          # zsh: sin un ~/.zshrc, el primer login dispara el asistente zsh-newuser-install (menú "0/1/2/q").
+          # La config real es system-wide (/etc/zsh/zshrc); este .zshrc en /etc/skel lo hereda cada usuario
+          # nuevo (adduser copia /etc/skel) y evita el asistente.
+          - echo '# Hidralisk OS - config de zsh system-wide en /etc/zsh/zshrc. Este archivo evita el asistente zsh-newuser-install en el primer login.' > /etc/skel/.zshrc
           # Spike-5 branding: logo Hidralisk en GDM (logos de desktop-base) y en el boot
           # (watermark de Plymouth). Variante BLANCA: el trazo negro original sería invisible
           # sobre los fondos oscuros de GDM/Plymouth. Assets en vib/sources/hidralisk/branding/.
