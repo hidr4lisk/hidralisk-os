@@ -135,8 +135,8 @@ stages:
           - glib-compile-schemas /usr/share/glib-2.0/schemas/
           - apt-get autoremove -y
           - apt-get clean
-          # apt no existe en un sistema inmutable: shim de cortesia (guia apx/flatpak/abroot). VA AL FINAL,
-          # DESPUES de autoremove/clean, si no esos apt-get reales caerian en el shim y romperian el build.
+          - lpkg --lock
+          # apt no existe en un sistema inmutable: `lpkg --lock` BORRA apt/apt-get/dpkg de /usr/bin (ese es su
+          # trabajo). Por eso el shim de cortesia (guia apx/flatpak/abroot) va DESPUES del lock: si no, lo borra.
           - install -Dm755 /sources/hidralisk/apt-shim /usr/bin/apt
           - ln -sf apt /usr/bin/apt-get
-          - lpkg --lock
