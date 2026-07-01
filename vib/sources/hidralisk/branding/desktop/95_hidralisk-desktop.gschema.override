@@ -23,3 +23,9 @@ menu-layout='Mint'
 menu-button-icon='Custom_Icon'
 custom-menu-button-icon='/usr/share/hidralisk/menu-icon.png'
 custom-menu-button-icon-size=30.0
+
+# ── Color de acento: Slate (gris) en vez del amarillo de Vanilla ─────────────
+# Vanilla-os/desktop deja el acento en 'yellow'; nuestro override 95_ carga después
+# de 90-vanilla-settings, así que gana. El usuario lo puede cambiar en Apariencia.
+[org.gnome.desktop.interface]
+accent-color='slate'
