@@ -2,7 +2,8 @@
 # Description: Hidralisk OS - durante la instalacion, el instalador muestra un slideshow de Vanilla
 # con un boton "Show console output". Preferimos ver la CONSOLA por defecto (que se vea el codigo,
 # no las imagenes de Vanilla). `progress.py` es un .py PLANO (no esta en el gresource), asi que lo
-# parcheamos: al construir la vista, disparar el mismo metodo que el boton (arranca en consola).
+# parcheamos: al construir la vista, disparar el mismo metodo que el boton (arranca en consola)
+# y OCULTAR el boton que vuelve al slideshow (tour_button) -> instalacion solo-consola.
 #
 # Corre despues de 001 (que instala vanilla-installer). No-fatal + idempotente.
 set -e
@@ -17,11 +18,29 @@ s = open(p).read()
 anchor = 'self.console_button.connect("clicked", self.__on_console_button)'
 mark = '__on_console_button()  # Hidralisk'
 add = '\n        self.__on_console_button()  # Hidralisk: consola por defecto (no slideshow)'
+hide_mark = 'tour_button.set_visible(False)  # Hidralisk'
+hide = '\n        self.tour_button.set_visible(False)  # Hidralisk: sin vuelta al slideshow de Vanilla'
+
+changed = False
 if mark in s:
-    print("[hidralisk] progress.py ya parcheado")
+    print("[hidralisk] progress.py ya parcheado (consola)")
 elif anchor in s:
-    open(p, "w").write(s.replace(anchor, anchor + add, 1))
+    s = s.replace(anchor, anchor + add, 1)
+    changed = True
     print("[hidralisk] progress.py: consola por defecto (no slideshow)")
 else:
     print("[hidralisk] WARN: ancla no encontrada en progress.py, sin cambios")
+
+# tour_button: cosmetico -> no-fatal si el widget ya no existe en esta version
+if hide_mark in s:
+    print("[hidralisk] progress.py ya parcheado (tour_button)")
+elif "self.tour_button" in s and anchor in s:
+    s = s.replace(anchor, anchor + hide, 1)
+    changed = True
+    print("[hidralisk] progress.py: tour_button oculto (solo consola)")
+else:
+    print("[hidralisk] WARN: tour_button no encontrado, sin ocultar")
+
+if changed:
+    open(p, "w").write(s)
 PY

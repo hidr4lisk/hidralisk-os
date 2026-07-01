@@ -5,7 +5,8 @@
 # (nombre interno del lpkg, no visible) y el ID `efi "vanilla"` de grub-install (no es el usuario).
 # El `hidralisk-firstboot` de la imagen ya detecta el user por UID>=1000, asi que sigue funcionando.
 #
-# Corre despues de 001 (instala vanilla-installer). No-fatal + idempotente.
+# Corre despues de 001 (instala vanilla-installer). Idempotente. FATAL si el patron
+# no matchea (que el build avise, no que la ISO instale vanilla/vanilla en silencio).
 set -e
 
 P=/usr/share/org.vanillaos.Installer/vanilla_installer/utils/processor.py
@@ -34,8 +35,11 @@ s = s.replace("chown -R vanilla:vanilla", "chown -R hidra:hidra")
 s = s.replace('"hostname", ["vanilla"]', '"hostname", ["hidralisk"]')
 
 if s == orig or "AutomaticLogin=hidra" not in s:
-    print("[hidralisk] WARN: patron de usuario no encontrado en processor.py, sin cambios")
-    sys.exit(0)
+    # FATAL a proposito: si el patron no matchea (cambio el vanilla-installer), la ISO
+    # instalaria vanilla/vanilla en silencio mientras el README promete hidra/hidra.
+    # Mejor que el build de la ISO falle ACA y nos enteremos ahora.
+    print("[hidralisk] FATAL: patron de usuario no encontrado en processor.py — revisar el hook 084")
+    sys.exit(1)
 
 open(p, "w").write(s)
 print("[hidralisk] processor.py: usuario por defecto hidra/hidra + hostname hidralisk")
