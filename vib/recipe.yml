@@ -51,9 +51,6 @@ stages:
           - cp /sources/hidralisk/branding/logo-white.svg /usr/share/icons/hicolor/scalable/apps/hidralisk-os-logo.svg
           - cp /sources/hidralisk/branding/logo-white.svg /usr/share/icons/hicolor/scalable/apps/org.vanillaos.FirstSetup-flower.svg
           - gtk-update-icon-cache -f /usr/share/icons/hicolor 2>/dev/null || true
-          # apt no existe en un sistema inmutable: shim de cortesia que explica usar apx/flatpak/abroot.
-          - install -Dm755 /sources/hidralisk/apt-shim /usr/bin/apt
-          - ln -sf apt /usr/bin/apt-get
           # Spike-5: deshabilitar el VSO First Setup (onboarding de Vanilla que, en el primer login,
           # muestra tema/apps y dispara `vso pico-init` → distrobox → contenedor `apx-vso-pico`.
           # Eso es frágil en VM (distrobox+podman rootless+--init) y NO es core de Hidralisk OS).
@@ -138,4 +135,8 @@ stages:
           - glib-compile-schemas /usr/share/glib-2.0/schemas/
           - apt-get autoremove -y
           - apt-get clean
+          # apt no existe en un sistema inmutable: shim de cortesia (guia apx/flatpak/abroot). VA AL FINAL,
+          # DESPUES de autoremove/clean, si no esos apt-get reales caerian en el shim y romperian el build.
+          - install -Dm755 /sources/hidralisk/apt-shim /usr/bin/apt
+          - ln -sf apt /usr/bin/apt-get
           - lpkg --lock
