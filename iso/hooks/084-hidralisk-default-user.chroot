@@ -1,0 +1,42 @@
+#!/bin/sh
+# Description: Hidralisk OS - el instalador (sin paso "users" en esta version del vanilla-installer)
+# hardcodea el usuario por defecto vanilla/vanilla (UID 1200) en `processor.py` (postInstall de albius).
+# Lo renombramos a hidra/hidra (+ hostname "hidralisk"). Se conserva el grupo `vanilla-first-setup`
+# (nombre interno del lpkg, no visible) y el ID `efi "vanilla"` de grub-install (no es el usuario).
+# El `hidralisk-firstboot` de la imagen ya detecta el user por UID>=1000, asi que sigue funcionando.
+#
+# Corre despues de 001 (instala vanilla-installer). No-fatal + idempotente.
+set -e
+
+P=/usr/share/org.vanillaos.Installer/vanilla_installer/utils/processor.py
+[ -f "$P" ] || { echo "[hidralisk] processor.py del instalador ausente, salteo"; exit 0; }
+
+python3 - "$P" <<'PY'
+import sys, re
+p = sys.argv[1]
+s = open(p).read()
+
+if "AutomaticLogin=hidra" in s:
+    print("[hidralisk] processor.py ya parcheado (usuario hidra)")
+    sys.exit(0)
+
+orig = s
+# adduser: username / fullname / password -> hidra (se conserva el grupo vanilla-first-setup)
+s = re.sub(
+    r'("adduser",\s*\[\s*)"vanilla",(\s*)"vanilla",'
+    r'(\s*\["sudo", "lpadmin", "vanilla-first-setup"\],\s*)"vanilla",',
+    r'\1"hidra",\2"hidra",\3"hidra",',
+    s, count=1)
+s = s.replace("AutomaticLogin=vanilla", "AutomaticLogin=hidra")
+s = s.replace("/home/vanilla", "/home/hidra")
+s = s.replace("AccountsService/users/vanilla", "AccountsService/users/hidra")
+s = s.replace("chown -R vanilla:vanilla", "chown -R hidra:hidra")
+s = s.replace('"hostname", ["vanilla"]', '"hostname", ["hidralisk"]')
+
+if s == orig or "AutomaticLogin=hidra" not in s:
+    print("[hidralisk] WARN: patron de usuario no encontrado en processor.py, sin cambios")
+    sys.exit(0)
+
+open(p, "w").write(s)
+print("[hidralisk] processor.py: usuario por defecto hidra/hidra + hostname hidralisk")
+PY
