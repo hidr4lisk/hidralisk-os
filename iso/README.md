@@ -44,6 +44,13 @@ docker run --privileged -i -v /proc:/proc -v ${PWD}:/working_dir -w /working_dir
 - **`hooks/083-hidralisk-installer-console.chroot`** *(branding, Spike-8)* — durante la instalación,
   arranca mostrando **la consola** en vez del slideshow de Vanilla. Parchea `progress.py` (plano, no
   gresource) para disparar `__on_console_button()` al construir la vista. ✅ **Verificado en vivo.**
+- **`hooks/084-hidralisk-default-user.chroot`** *(usuario)* — esta versión del vanilla-installer **no tiene
+  paso "users"** (no hay `defaults/users.py`), así que el usuario/pass/hostname salen **fijos** del postInstall
+  de albius en `utils/processor.py` (originalmente `vanilla`/`vanilla` UID 1200, hostname `vanilla`). El hook
+  parchea `processor.py` a **hidra/hidra** + hostname **hidralisk** (conserva el grupo interno
+  `vanilla-first-setup` y el id `efi "vanilla"` de grub-install, que **no** es el usuario). Idempotente,
+  no-fatal. ✅ **Verificado en vivo (2026-07-01):** el SO instalado crea `hidra` (UID 1200, zsh, sudo+lpadmin),
+  hostname `hidralisk`, home `hidra:hidra`. El `hidralisk-firstboot` de la imagen lo detecta por UID≥1000.
 - **`bootloaders/grub-pc/grub.cfg`** *(branding, Spike-5)* — menú de boot de la ISO:
   `menuentry "Install Hidralisk OS"` (+ Safe Graphics / Nouveau).
 

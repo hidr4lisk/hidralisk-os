@@ -17,6 +17,8 @@ mediante una ISO custom. Lo que ya funciona:
 | Escritorio "tipo Mint" (Dash to Panel + Arc Menu, menú = dragón) | ✅ en imagen (Spike-8) |
 | Boot limpio: FsGuard desactivado (su filelist firmado por Vanilla no es re-firmable) | ✅ en imagen (Spike-8) |
 | `abroot upgrade` apunta a nuestra imagen (`ghcr.io/hidr4lisk/hidralisk-os`) | ✅ en imagen (Spike-8) |
+| Usuario por defecto **hidra/hidra** + hostname **hidralisk** (no vanilla/vanilla) | ✅ en ISO (hook 084) |
+| Color de acento por defecto **Slate** (gris, no el amarillo de Vanilla) | ✅ en imagen |
 
 ## Próximo
 
@@ -38,6 +40,18 @@ mediante una ISO custom. Lo que ya funciona:
   `abroot.json` — se ve en el instalado, strip de ANSI de `abroot`). Nota `--no-cache`: cambiar solo un archivo bajo `vib/sources/` NO
   produce imagen nueva (podman cachea la capa `RUN`; el `--mount` no invalida el cache) → el próximo build
   de imagen debe ser `podman build --no-cache`.
+- **Botón "Show slideshow" en la pantalla de progreso** — con `083` arrancamos en consola, pero queda
+  visible el botón que vuelve al slideshow de Vanilla (el `tour_button` de `progress.py`). Sacarlo (que
+  no se muestre) para que la instalación sea solo-consola. Ampliar el hook `083` (mismo `progress.py`):
+  ocultar `self.tour_button` además de disparar `__on_console_button`. Requiere rebuild de ISO.
+- ~~**Usuario por defecto hidra/hidra**~~ ✅ **hecho y verificado en vivo (2026-07-01)**: esta versión del
+  vanilla-installer no tiene paso "users" (el user/pass/hostname salen fijos del postInstall de `processor.py`).
+  Hook `084` (`iso/hooks/084-hidralisk-default-user.chroot`) lo renombra vanilla/vanilla → **hidra/hidra** +
+  hostname **hidralisk**. Verificado en el SO instalado: `hidra` UID 1200 (zsh, sudo+lpadmin), home `hidra:hidra`.
+  (En hardware real conviene cambiar la pass con `passwd` — el autologin queda en `hidra`.)
+- ~~**Accent color Slate por defecto**~~ ✅ **hecho y verificado en vivo (2026-07-01)**: el amarillo lo trae la
+  base `vanilla-os/desktop`; el override `95_hidralisk-desktop.gschema.override` setea
+  `accent-color='slate'` (gana sobre `90-vanilla-settings`). Verificado en el session vivo de GNOME.
 - **Plymouth de reboot de la sesión live** — al reiniciar tras instalar, el splash "Restarting" de la
   **sesión live (ISO)** todavía muestra la flor de Vanilla. El Plymouth del sistema **instalado** ya está
   brandeado (throbber→dragón en `vib/`), pero el de la ISO no → falta un hook que reemplace watermark +
