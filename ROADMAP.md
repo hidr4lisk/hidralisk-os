@@ -28,17 +28,20 @@ mediante una ISO custom. Lo que ya funciona:
   detecta por UID≥1000.)
 - ~~**Test de `apx` post-instalación**~~ ✅ **verificado**: creó un subsistema alpine rootless con el hardening
   puesto e instaló+corrió software (`podman rootless=true`). El "apt alternativo" funciona.
-- **Branding del instalador (gresource)** — el string está en `confirm.ui`, compilado dentro de
-  `vanilla-installer.gresource`:
-  1. Botón de confirmación **"Install Vanilla OS"** → **"Install Hidralisk OS"**: 🟡 **hook `082`
-     escrito** (`iso/hooks/082-hidralisk-installer-confirm.chroot`: extrae → `sed` → recompila el
-     gresource). **Pendiente validar en un build de ISO en el Lab.**
-  2. Durante la instalación se ven las **imágenes/slideshow de Vanilla** → sacarlas y dejar por
-     defecto **"show console output"**. ⬜ Falta investigar el mecanismo (progress/slideshow) en el Lab.
-- ~~**Pulido de `hidrafetch`**~~ ✅ **arreglado** (`Shell` del passwd, imagen desde `abroot.json`, strip de
-  ANSI de `abroot`). ⚠️ **Falta rebuild `--no-cache`**: cambiar solo un archivo bajo `vib/sources/` NO
+- ~~**Branding del instalador (gresource)**~~ ✅ **hecho y verificado en vivo (2026-07-01)**:
+  1. Botón de confirmación **"Install Vanilla OS"** → **"Install Hidralisk OS"** — hook `082`
+     (`iso/hooks/082-hidralisk-installer-confirm.chroot`: extrae → `sed` → recompila el gresource).
+     ✅ confirmado en la instalación.
+  2. Slideshow de Vanilla → **consola por defecto** — hook `083` (parchea `progress.py`, plano, para
+     disparar `__on_console_button` al construir la vista). ✅ confirmado en la instalación.
+- ~~**Pulido de `hidrafetch`**~~ ✅ **arreglado y verificado en vivo** (`Shell` del passwd, imagen desde
+  `abroot.json` — se ve en el instalado, strip de ANSI de `abroot`). Nota `--no-cache`: cambiar solo un archivo bajo `vib/sources/` NO
   produce imagen nueva (podman cachea la capa `RUN`; el `--mount` no invalida el cache) → el próximo build
   de imagen debe ser `podman build --no-cache`.
+- **Plymouth de reboot de la sesión live** — al reiniciar tras instalar, el splash "Restarting" de la
+  **sesión live (ISO)** todavía muestra la flor de Vanilla. El Plymouth del sistema **instalado** ya está
+  brandeado (throbber→dragón en `vib/`), pero el de la ISO no → falta un hook que reemplace watermark +
+  throbber del `vanilla-bgrt` en el chroot del live. Cosmético (se ve una vez durante la instalación).
 - ~~**CI** — workflow que valide la receta en cada push~~ ✅ hecho (`.github/workflows/ci.yml`:
   yamllint + validación de estructura del recipe (PyYAML) + `bash -n` de los hooks + compile de
   hidrafetch). Offline/determinístico; el `vib build` real se corre en el Laboratorio.

@@ -40,14 +40,18 @@ docker run --privileged -i -v /proc:/proc -v ${PWD}:/working_dir -w /working_dir
 - **`hooks/082-hidralisk-installer-confirm.chroot`** *(branding, Spike-8)* — parchea el string
   "Install Vanilla OS" (botón de la pantalla de confirmación) → "Install Hidralisk OS". Vive
   **compilado dentro de** `vanilla-installer.gresource`, así que el hook lo extrae → `sed` en los
-  `.ui` → recompila con `glib-compile-resources`. No-fatal. **⚠️ Sin validar en un build de ISO todavía.**
+  `.ui` → recompila con `glib-compile-resources`. No-fatal. ✅ **Verificado en vivo (2026-07-01).**
+- **`hooks/083-hidralisk-installer-console.chroot`** *(branding, Spike-8)* — durante la instalación,
+  arranca mostrando **la consola** en vez del slideshow de Vanilla. Parchea `progress.py` (plano, no
+  gresource) para disparar `__on_console_button()` al construir la vista. ✅ **Verificado en vivo.**
 - **`bootloaders/grub-pc/grub.cfg`** *(branding, Spike-5)* — menú de boot de la ISO:
   `menuentry "Install Hidralisk OS"` (+ Safe Graphics / Nouveau).
 
 Detalle y lecciones (core no es instalable, patrón `lpkg`, etc.) → `docs/adr/ADR-002` §6.
 
-> **Pendiente de branding:** durante la instalación se ven las **imágenes/slideshow de Vanilla** en la
-> página de progreso → sacarlas y dejar por defecto **"show console output"**. Mecanismo aún sin
-> investigar (necesita el Lab). El botón "Install Vanilla OS" ya lo cubre el hook `082` (pendiente
-> validar en build). El logo de GDM, el splash de Plymouth, el wallpaper (escritorio + login + sesión
-> live) y el avatar ya están resueltos (imagen vía `vib/`, salvo el wallpaper live que es de la ISO).
+> **Pendiente de branding:** el **Plymouth de reboot de la sesión live** (splash "Restarting" de la ISO)
+> todavía muestra la flor de Vanilla → falta un hook que brandee el `vanilla-bgrt` del chroot del live
+> (watermark + throbber, como en el `vib/` del instalado). Cosmético, se ve una vez. El botón de
+> confirmación (`082`) y la consola-por-defecto (`083`) ya están resueltos y verificados. El logo de GDM,
+> el splash de Plymouth del instalado, el wallpaper y el avatar ya están (imagen vía `vib/`, salvo el
+> wallpaper live que es de la ISO).
