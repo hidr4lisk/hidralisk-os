@@ -11,6 +11,13 @@ imagen `ghcr.io/hidr4lisk/hidralisk-os:latest`. Incluye, además de lo de abajo:
 (vía firstboot), **Desktop Icons NG** (íconos + selección en el escritorio), **logo propio en Ajustes>Acerca de**,
 **tema oscuro por defecto** y un **shim de `apt`** que guía a `apx`/`flatpak`/`abroot`.
 
+✅ **Verificado end-to-end en vivo (2026-07-01, KVM):** instala desde la ISO, **bootea limpio** (GRUB carga
+`vmlinuz-6.17.9+deb14-amd64`), hostname `hidralisk`, `hidra` con `sudo (ALL:ALL) ALL` + zsh + Starship,
+**Ptyxis único** (Black Box + Alacritty purgados), **Flathub** registrado (`flathub system`), **DING** activo
+y `LOGO=` propio en Acerca de. (Nota de infra: el *deploy* del instalador puede sufrir corrupción transitoria
+de composefs/btrfs — pegó 2× seguidas antes de deployar sano; el fix es reintentar con disco limpio, no es la
+imagen ni el hardware.)
+
 ## Dónde está hoy
 
 Hidralisk OS **instala y bootea** desde nuestra imagen OCI (`ghcr.io/hidr4lisk/hidralisk-os`)
