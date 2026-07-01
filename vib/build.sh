@@ -12,8 +12,12 @@
 #   vib/build.sh --no-cache --push
 #
 # Requisitos: `vib-amd64` en la raiz del repo; `sudo podman`; para --push, estar logueado a
-# GHCR (`podman login ghcr.io -u hidr4lisk`). Para sudo no-interactivo: exportar SUDO_ASKPASS.
+# GHCR (`podman login ghcr.io -u hidr4lisk`). Para sudo no-interactivo: exportar SUDO_ASKPASS
+# (el script pasa -A solo en ese caso; sudo NO usa askpass sin -A aunque no haya tty).
 set -e
+
+SUDO="sudo"
+[ -n "${SUDO_ASKPASS:-}" ] && SUDO="sudo -A"
 
 REPO=$(cd "$(dirname "$0")/.." && pwd)
 cd "$REPO"
@@ -47,14 +51,14 @@ echo "[build] 2/3 restaurando vib/sources (vib lo vacia)"
 git checkout -- vib/sources
 
 echo "[build] 3/3 podman build ${NOCACHE:-(con cache)}"
-sudo podman build $NOCACHE -t "$IMG" -f vib/Containerfile vib
+$SUDO podman build $NOCACHE -t "$IMG" -f vib/Containerfile vib
 
 if [ "$PUSH" -eq 1 ]; then
     echo "[build] tag + push $REMOTE :latest + :main"
-    sudo podman tag "$IMG" "$REMOTE:latest"
-    sudo podman tag "$IMG" "$REMOTE:main"
-    sudo podman push "$REMOTE:latest"
-    sudo podman push "$REMOTE:main"
+    $SUDO podman tag "$IMG" "$REMOTE:latest"
+    $SUDO podman tag "$IMG" "$REMOTE:main"
+    $SUDO podman push "$REMOTE:latest"
+    $SUDO podman push "$REMOTE:main"
 fi
 
 echo "[build] OK -> $IMG"
