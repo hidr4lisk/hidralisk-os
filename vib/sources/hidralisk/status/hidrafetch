@@ -16,8 +16,14 @@ Uso:  hidrafetch            # vista completa
 
 import os
 import sys
+import re
+import json
+import pwd
 import shutil
 import subprocess
+
+# Regex para limpiar códigos de color ANSI de la salida de otros comandos (p.ej. abroot).
+_ANSI = re.compile(r"\x1b\[[0-9;]*m")
 
 # ── Paleta ──────────────────────────────────────────────────────────────────
 _PLAIN = ("--plain" in sys.argv) or (not sys.stdout.isatty() and "--color" not in sys.argv)
@@ -147,7 +153,14 @@ def gather_facts():
     if pkgs and pkgs.isdigit() and int(pkgs) > 0:
         f.append(("Paquetes", f"{pkgs} (apt)"))
 
-    f.append(("Shell", os.path.basename(os.environ.get("SHELL", "")) or "n/d"))
+    # Shell: preferir $SHELL, pero si no está (p.ej. corrido sin login shell) leer del passwd.
+    shell = os.environ.get("SHELL", "")
+    if not shell:
+        try:
+            shell = pwd.getpwuid(os.getuid()).pw_shell
+        except Exception:
+            shell = ""
+    f.append(("Shell", os.path.basename(shell) if shell else "n/d"))
 
     de = os.environ.get("XDG_CURRENT_DESKTOP", "")
     sess = os.environ.get("XDG_SESSION_TYPE", "")
@@ -232,23 +245,43 @@ def gather_security():
 
 
 # ── Integridad / ABRoot ─────────────────────────────────────────────────────
+def abroot_image():
+    """Referencia de la imagen OCI (registry/name:tag), leída de abroot.json."""
+    for p in ("/etc/abroot/abroot.json", "/usr/share/abroot/abroot.json"):
+        try:
+            with open(p) as fh:
+                j = json.load(fh)
+            name = j.get("name", "")
+            if not name:
+                continue
+            reg = (j.get("registry") or "").strip("/")
+            tag = j.get("tag", "")
+            ref = "/".join(x for x in (reg, name) if x)
+            return ref + (f":{tag}" if tag else "")
+        except Exception:
+            continue
+    return ""
+
+
 def gather_abroot():
     if not have("abroot"):
         return None
-    out = run("abroot status 2>/dev/null") or run("sudo -n abroot status 2>/dev/null")
-    if not out:
-        return {"raw": "(abroot presente; 'abroot status' no devolvió datos)"}
+    # abroot status trae color ANSI -> limpiarlo (si no, ensucia y rompe el parseo).
+    out = _ANSI.sub("", run("abroot status 2>/dev/null") or run("sudo -n abroot status 2>/dev/null"))
     info = {}
+    img = abroot_image()
+    if img:
+        info["image"] = img
     for line in out.splitlines():
         low = line.lower()
         if "present" in low and "future" not in low:
             info.setdefault("present", line.strip())
         if "future" in low:
             info.setdefault("future", line.strip())
-        if "image" in low and ":" in line:
-            info.setdefault("image", line.split(":", 1)[1].strip())
         if "digest" in low:
             info.setdefault("digest", line.split(":", 1)[1].strip())
+    if not out and "image" not in info:
+        return {"raw": "(abroot presente; 'abroot status' no devolvió datos)"}
     info["raw"] = out
     return info
 
