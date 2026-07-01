@@ -20,16 +20,21 @@ mediante una ISO custom. Lo que ya funciona:
 
 ## Próximo
 
-- **Showcase de instalación end-to-end** desde la ISO: verificar en una instalación limpia que GRUB,
-  instalador, GDM (avatar + fondo), escritorio (wallpaper), terminal (zsh + starship) y la postura de
-  seguridad (`sysctl`/`ufw`) quedan todos correctos.
+- ~~**Showcase de instalación end-to-end** desde la ISO~~ ✅ **verificado en vivo (2026-06-30, KVM)**: instala,
+  **bootea limpio** (sin la pantalla roja de FsGuard), barra Mint + dragón, avatar + `Session=gnome` (sin la
+  flor), usuario en zsh, **hidrafetch ENDURECIDO 7/8** + ufw, ABRoot A/B. (Gotcha resuelto: no borrar
+  `org.vanillaos.FirstSetup.desktop` del image — el postInstall del instalador lo copia y su ausencia abortaba
+  la instalación antes del `chown` del home; y el instalador crea el user en UID 1200 → `hidralisk-firstboot`
+  detecta por UID≥1000.)
+- ~~**Test de `apx` post-instalación**~~ ✅ **verificado**: creó un subsistema alpine rootless con el hardening
+  puesto e instaló+corrió software (`podman rootless=true`). El "apt alternativo" funciona.
 - **Branding del instalador (gresource)** — pendientes confirmados en vivo (2026-06-30), viven en
   `vanilla-installer.gresource` → requieren build propio del instalador:
   1. El botón final del resumen dice **"Install Vanilla"** → debe decir **"Install Hidralisk OS"**.
   2. Durante la instalación se ven las **imágenes/slideshow de Vanilla** → sacarlas y dejar por
      defecto **"show console output"** (que se vea el código directo, no las imágenes de Vanilla).
-- **Test de `apx` post-instalación** — confirmar que instalar software en contenedores rootless
-  funciona con el hardening aplicado (es la razón por la que se omiten ciertos `sysctl`).
+- **Pulido de `hidrafetch`**: `Shell n/d`, línea "Imagen" vacía, y fuga de ANSI de `abroot` en la sección
+  de integridad.
 - ~~**CI** — workflow que valide la receta en cada push~~ ✅ hecho (`.github/workflows/ci.yml`:
   yamllint + validación de estructura del recipe (PyYAML) + `bash -n` de los hooks + compile de
   hidrafetch). Offline/determinístico; el `vib build` real se corre en el Laboratorio.
@@ -53,7 +58,8 @@ y wireado al `recipe.yml`:
 - ✅ **Override** `95_hidralisk-desktop.gschema.override` — habilita las extensiones (conserva `vso@`),
   panel arriba (`panel-positions`), ArcMenu layout `Mint` con el dragón como botón. Compila sin error.
 
-Pendiente: re-test en vivo (que el panel renderice como se espera en una instalación limpia).
+✅ **Verificado en vivo (2026-06-30)**: en la instalación limpia el panel arriba renderiza, ambas extensiones
+(`dash-to-panel` + `arcmenu`) quedan activas y el botón de menú muestra el dragón.
 
 ## App de estado del sistema — ✅ `hidrafetch`
 
