@@ -82,6 +82,8 @@ stages:
           # instalador (nombre desconocido en build) → un oneshot lo setea en el 1er arranque
           # para el UID 1000. La guarda del .service evita que se repita.
           - cp /sources/hidralisk/branding/avatar.png /usr/share/hidralisk/avatar.png
+          # Flathub: el .flatpakrepo (con GPG key) va a la imagen; el firstboot lo registra en /var.
+          - cp /sources/hidralisk/flathub.flatpakrepo /usr/share/hidralisk/flathub.flatpakrepo
           - cp /sources/hidralisk/branding/hidralisk-firstboot /usr/libexec/hidralisk-firstboot
           - chmod +x /usr/libexec/hidralisk-firstboot
           - cp /sources/hidralisk/branding/hidralisk-firstboot.service /usr/lib/systemd/system/hidralisk-firstboot.service

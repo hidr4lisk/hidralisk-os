@@ -5,13 +5,14 @@
 cat >&2 <<'EOF'
 
   Hidralisk OS es un sistema INMUTABLE: la base es de solo lectura, así que
-  no se instala con apt. Elegí según qué necesites:
+  no se instala con apt. Nada de esto toca la base — no la podés romper.
 
-    • App de escritorio:   flatpak install <app>        (o abrí "Software")
-    • Herramienta de CLI:  apx  — un entorno tipo apt en un contenedor:
-                             apx subsystems new --stack vanilla    (una sola vez)
-                             apx <nombre> enter                    (entrás al entorno)
-                             # adentro sí funciona apt normalmente
+    • App de escritorio (lo normal):   abrí "Software", o bien:
+                             flatpak install <app>
+    • Herramienta de CLI (tipo apt):   apx  — un Ubuntu con apt en un contenedor:
+                             apx subsystems new --stack ubuntu     (una sola vez, te pide un nombre)
+                             apx <nombre> install <paquete>        (apt por dentro)
+                             apx <nombre> enter                    (o entrás y usás apt normal)
     • Agregar a la base:   sudo abroot pkg add <paquete>   (avanzado; requiere reboot)
 
   Más info: https://github.com/hidr4lisk/hidralisk-os

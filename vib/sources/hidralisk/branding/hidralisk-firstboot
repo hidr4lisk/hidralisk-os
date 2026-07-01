@@ -37,3 +37,10 @@ if [ -x /usr/bin/zsh ]; then
   cur=$(getent passwd "$U" | cut -d: -f7)
   [ "$cur" = /usr/bin/zsh ] || usermod -s /usr/bin/zsh "$U" || true
 fi
+
+# Flathub (repo de flatpaks) = el camino de apps de escritorio. Se registra en el 1er boot
+# porque el remote vive en /var (mutable), no en la imagen /usr (solo lectura). Offline-friendly:
+# el .flatpakrepo trae la GPG key embebida, asi que no baja nada al registrarlo.
+if [ -x /usr/bin/flatpak ] && [ -f /usr/share/hidralisk/flathub.flatpakrepo ]; then
+  flatpak remote-add --if-not-exists --system flathub /usr/share/hidralisk/flathub.flatpakrepo || true
+fi
