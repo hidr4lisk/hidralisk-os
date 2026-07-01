@@ -19,6 +19,9 @@ mediante una ISO custom. Lo que ya funciona:
 | `abroot upgrade` apunta a nuestra imagen (`ghcr.io/hidr4lisk/hidralisk-os`) | ✅ en imagen (Spike-8) |
 | Usuario por defecto **hidra/hidra** + hostname **hidralisk** (no vanilla/vanilla) | ✅ en ISO (hook 084) |
 | Color de acento por defecto **Slate** (gris, no el amarillo de Vanilla) | ✅ en imagen |
+| `sudo` funcional (la base no traía el binario) — hidra `(ALL:ALL) ALL` con password | ✅ en imagen |
+| Un solo terminal: **Ptyxis** (se purgan Black Box + Alacritty de la base) | ✅ en imagen |
+| `/etc/skel/.zshrc` — sin asistente `zsh-newuser-install` en el primer login | ✅ en imagen |
 
 ## Próximo
 
