@@ -51,5 +51,14 @@ jobs:
             bash -n "$h" && echo "  ok: $h"
           done
 
-      - name: python compile (hidrafetch)
-        run: python3 -m py_compile vib/sources/hidralisk/status/hidrafetch
+      - name: hidrafetch (compile + smoke run)
+        run: |
+          python3 -m py_compile vib/sources/hidralisk/status/hidrafetch
+          # Corre de verdad (modo plano): sin abroot/Vanilla degrada con elegancia, pero debe
+          # salir 0 y mostrar la seccion de seguridad. Atrapa regresiones de runtime (imports, etc.).
+          out=$(python3 vib/sources/hidralisk/status/hidrafetch --plain --no-art)
+          echo "$out" | grep -q "SEGURIDAD POR DEFECTO" \
+            || { echo "FAIL: hidrafetch no mostro la seccion de seguridad"; exit 1; }
+          echo "$out" | grep -q "INTEGRIDAD" \
+            || { echo "FAIL: hidrafetch no mostro la seccion de integridad"; exit 1; }
+          echo "hidrafetch corre y renderiza OK"
