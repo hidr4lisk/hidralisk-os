@@ -14,6 +14,15 @@ cd ~/repos/hidralisk-os
 sudo podman build -t hidralisk-os:vib -f vib/Containerfile vib
 ```
 
+> ⚠️ **Cache de podman:** el `Containerfile` monta `vib/sources/` con `--mount`, y podman cachea la capa
+> `RUN` por el TEXTO del comando, **no** por el contenido montado. Si cambiás **solo** un archivo de
+> `vib/sources/` (p.ej. `hidrafetch`) sin tocar `recipe.yml`, la imagen sale idéntica (capa cacheada) y el
+> cambio **no entra**. En ese caso buildeá con **`--no-cache`**:
+> `sudo podman build --no-cache -t hidralisk-os:vib -f vib/Containerfile vib`.
+>
+> ⚠️ **`vib build` vacía `vib/sources/`** al generar el Containerfile → restaurá con
+> `git checkout -- vib/sources` **antes** del `podman build`.
+
 ## Spike-3 — ✅ validado (2026-06-29)
 
 Probó la pregunta que bloqueaba todo (pared #1 del ADR-002): **¿se pueden instalar paquetes con

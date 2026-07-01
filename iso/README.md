@@ -37,12 +37,17 @@ docker run --privileged -i -v /proc:/proc -v ${PWD}:/working_dir -w /working_dir
 - **`hooks/081-hidralisk-live-wallpaper.chroot`** *(branding, Spike-6)* — recompila los schemas
   para que el wallpaper de la **sesión live del instalador** sea el de Hidralisk. El PNG y el
   override van por `includes.chroot` (acá sí sirve: ningún paquete los pisa).
+- **`hooks/082-hidralisk-installer-confirm.chroot`** *(branding, Spike-8)* — parchea el string
+  "Install Vanilla OS" (botón de la pantalla de confirmación) → "Install Hidralisk OS". Vive
+  **compilado dentro de** `vanilla-installer.gresource`, así que el hook lo extrae → `sed` en los
+  `.ui` → recompila con `glib-compile-resources`. No-fatal. **⚠️ Sin validar en un build de ISO todavía.**
 - **`bootloaders/grub-pc/grub.cfg`** *(branding, Spike-5)* — menú de boot de la ISO:
   `menuentry "Install Hidralisk OS"` (+ Safe Graphics / Nouveau).
 
 Detalle y lecciones (core no es instalable, patrón `lpkg`, etc.) → `docs/adr/ADR-002` §6.
 
-> **Pendiente de branding:** botón final "Install Vanilla OS" dentro del instalador (vive en
-> `vanilla-installer.gresource`, requiere build propio del instalador). El logo de GDM, el splash
-> de Plymouth, el wallpaper (escritorio + login + sesión live) y el avatar ya están resueltos
-> (en la imagen vía `vib/`, salvo el wallpaper de la sesión live que es de la ISO).
+> **Pendiente de branding:** durante la instalación se ven las **imágenes/slideshow de Vanilla** en la
+> página de progreso → sacarlas y dejar por defecto **"show console output"**. Mecanismo aún sin
+> investigar (necesita el Lab). El botón "Install Vanilla OS" ya lo cubre el hook `082` (pendiente
+> validar en build). El logo de GDM, el splash de Plymouth, el wallpaper (escritorio + login + sesión
+> live) y el avatar ya están resueltos (imagen vía `vib/`, salvo el wallpaper live que es de la ISO).
