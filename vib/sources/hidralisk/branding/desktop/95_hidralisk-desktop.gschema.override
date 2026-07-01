@@ -10,7 +10,7 @@
 
 # ── Habilitar extensiones por defecto (se conserva vso@ de Vanilla) ───────────
 [org.gnome.shell]
-enabled-extensions=['vso@vanillaos.org', 'dash-to-panel@jderose9.github.com', 'arcmenu@arcmenu.com']
+enabled-extensions=['vso@vanillaos.org', 'dash-to-panel@jderose9.github.com', 'arcmenu@arcmenu.com', 'ding@rastersoft.com']
 
 # ── Dash to Panel: panel ARRIBA con taskbar (posición por-monitor en JSON) ────
 [org.gnome.shell.extensions.dash-to-panel]

@@ -34,7 +34,7 @@ stages:
           # base `desktop` = capa de paquetes TRABADA → destrabar para apt, retrabar al final
           - lpkg --unlock
           - apt-get update
-          - apt-get install -y --no-install-recommends sudo openssh-server ufw htop ca-certificates qemu-guest-agent spice-vdagent zsh zsh-autosuggestions zsh-syntax-highlighting ptyxis starship gnome-shell-extension-dash-to-panel gnome-shell-extension-arc-menu
+          - apt-get install -y --no-install-recommends sudo openssh-server ufw htop ca-certificates qemu-guest-agent spice-vdagent zsh zsh-autosuggestions zsh-syntax-highlighting ptyxis starship gnome-shell-extension-dash-to-panel gnome-shell-extension-arc-menu gnome-shell-extension-desktop-icons-ng
           # Terminal por defecto = Ptyxis ("Terminal"). La base trae 2 terminales extra (Black Box +
           # Alacritty) → sacarlos para no confundir. apt purge por si son debs; rm del .desktop garantiza
           # que desaparezcan del menú aunque el nombre del paquete no matchee.
