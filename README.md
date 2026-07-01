@@ -36,15 +36,17 @@ Vanilla viene con GNOME pelado y sin terminal. Hidralisk OS trae, configurado a 
 
 - **zsh** como shell por defecto, con `zsh-autosuggestions` + `zsh-syntax-highlighting`.
 - **Starship** con un prompt temático propio.
-- **Ptyxis** como terminal + **Hack Nerd Font**.
+- **Ptyxis** como **único** terminal (sin duplicados) + **Hack Nerd Font**.
+- **`sudo` listo** — el usuario por defecto tiene privilegios de administrador desde el arranque.
 - Configuración **impersonal y system-wide** (`/etc/zsh/zshrc`, `/etc/starship.toml`) — funciona
-  para cualquier usuario apenas instala, sin dotfiles que copiar.
+  para cualquier usuario apenas instala, **sin dotfiles que copiar ni asistentes** en el primer login.
 
 ### 🖥️ Escritorio tradicional, tipo Mint
 El GNOME pelado de Vanilla se convierte en una experiencia familiar, sin configurar nada:
 
 - **Panel arriba** con menú de apps + taskbar + bandeja (Dash to Panel).
 - **Menú de aplicaciones estilo Mint** cuyo botón es el dragón Hidralisk (Arc Menu).
+- **Color de acento Slate** (gris sobrio) en vez del amarillo de Vanilla.
 - Todo por defecto vía `dconf` system-wide; el usuario lo puede cambiar cuando quiera.
 
 ### 📟 Se conoce a sí misma — `hidrafetch`
