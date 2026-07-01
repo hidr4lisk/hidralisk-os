@@ -51,9 +51,25 @@ Aplicado en el `vib/recipe.yml`:
 Hidralisk hereda de la base inmutable, sin trabajo extra:
 
 - **Sistema base de solo lectura** (ABRoot) — un compromiso de runtime no persiste binarios del sistema.
-- **Integridad de filesystem** vía composefs / fs-verity.
+- **Integridad de filesystem** vía composefs / fs-verity (verificación a nivel de bloque del root RO).
 - **Updates transaccionales con rollback atómico** — un update malicioso o roto se revierte.
-- **AppArmor** presente en la base Debian/Vanilla.
+
+## 4. Decisiones e implementación — notas de transparencia
+
+- **FsGuard desactivado (a propósito).** Vanilla trae `FsGuard`, un verificador que al boot compara un
+  `filelist` de hashes contra una firma **minisign**. El problema: ese filelist está firmado con la
+  **clave privada de Vanilla, cuya pública está EMBEBIDA en el binario** `/usr/sbin/FsGuard` — no es
+  re-firmable para una imagen custom. Como nuestra imagen modifica archivos del filelist (branding,
+  hardening, shell), FsGuard fallaba al boot ("Integrity Check Failed"). Se **quita el hook**
+  (`rm /usr/share/init.d/010-fsguard.sh` en el recipe). La integridad del sistema la sigue dando
+  **composefs/fs-verity** (root de solo lectura, verificado a nivel de bloque) + los `sysctl`/`ufw`.
+  Reintroducir un FsGuard **con clave propia** (recompilando el binario + generando y firmando nuestro
+  filelist) es un ítem de roadmap.
+- **AppArmor y Yama NO están cargados** (gap conocido). El cmdline por defecto de Vanilla trae
+  `lsm=integrity`, que resuelve a `lockdown,capability,ima,evm` — **sin `apparmor` ni `yama`**. Por eso
+  el `kernel.yama.ptrace_scope=1` del §1 **queda seteado pero no es efectivo** (el LSM Yama no está
+  activo; `hidrafetch` lo reporta como `n/d`, de ahí el `7/8` en vez de `8/8`). Cerrarlo = agregar
+  `yama` (y evaluar `apparmor`) a la lista `lsm=` del cmdline del kernel — ver roadmap.
 
 ---
 
@@ -61,13 +77,17 @@ Hidralisk hereda de la base inmutable, sin trabajo extra:
 
 Lo materializado hoy (sysctl + ufw) es la **primera capa**. Lo que sigue, en orden de prioridad:
 
-1. **Blacklist de módulos del kernel** (`/etc/modprobe.d/`) — filesystems y protocolos raros
+1. **Cargar `yama` (y evaluar `apparmor`) en el `lsm=` del cmdline** — hoy `lsm=integrity` los deja
+   afuera, así que `ptrace_scope` no es efectivo y AppArmor no confina. Es el gap que baja el score a 7/8.
+2. **Blacklist de módulos del kernel** (`/etc/modprobe.d/`) — filesystems y protocolos raros
    (cramfs, hfs, dccp, sctp, firewire, etc.).
-2. **`auditd`** con un ruleset base — trazabilidad de eventos de seguridad.
-3. **Parámetros de kernel en GRUB** (`init_on_alloc/free`, `slab_nomerge`, `randomize_kstack_offset`,
+3. **`auditd`** con un ruleset base — trazabilidad de eventos de seguridad.
+4. **Parámetros de kernel en GRUB** (`init_on_alloc/free`, `slab_nomerge`, `randomize_kstack_offset`,
    `lockdown=confidentiality`, `module.sig_enforce`) — evaluando impacto en boot/compatibilidad.
-4. **AppArmor profiles propios** para servicios expuestos.
-5. **Minimización de servicios** — apagar lo que no se usa por defecto.
+5. **AppArmor profiles propios** para servicios expuestos (depende del punto 1).
+6. **FsGuard con clave propia** — recompilar el binario con nuestra pública minisign + generar y firmar
+   nuestro `filelist` sobre la imagen final, para recuperar la verificación de integridad firmada.
+7. **Minimización de servicios** — apagar lo que no se usa por defecto.
 
 Cada fase se materializa en `vib/recipe.yml` (o sus `sources/`) y se valida en una instalación real
 antes de darse por cerrada. La regla del §0 (no romper `apx`/ABRoot) aplica a todas.
