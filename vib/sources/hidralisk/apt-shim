@@ -1,7 +1,7 @@
 #!/bin/sh
 # Hidralisk OS — 'apt' de cortesía. El sistema base es INMUTABLE (solo lectura),
 # así que no hay apt tradicional. Este shim explica cómo instalar software.
-# (se invoca como 'apt' y 'apt-get').
+# (se invoca como 'apt', 'apt-get' y 'dpkg' — lpkg --lock borra los tres reales).
 cat >&2 <<'EOF'
 
   Hidralisk OS es un sistema INMUTABLE: la base es de solo lectura, así que

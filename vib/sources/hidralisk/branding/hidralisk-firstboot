@@ -38,6 +38,11 @@ if [ -x /usr/bin/zsh ]; then
   [ "$cur" = /usr/bin/zsh ] || usermod -s /usr/bin/zsh "$U" || true
 fi
 
+# contraseña por defecto (hidra/hidra, publicada en el README) → forzar el cambio en el
+# primer uso: chage -d 0 expira la pass. El autologin de GDM no pide password (no lo rompe);
+# el cambio se exige en el primer sudo / login con password / ssh.
+chage -d 0 "$U" || true
+
 # Flathub (repo de flatpaks) = el camino de apps de escritorio. Se registra en el 1er boot
 # porque el remote vive en /var (mutable), no en la imagen /usr (solo lectura). Offline-friendly:
 # el .flatpakrepo trae la GPG key embebida, asi que no baja nada al registrarlo.

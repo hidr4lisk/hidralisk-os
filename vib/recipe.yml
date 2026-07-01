@@ -21,7 +21,7 @@ stages:
     singlelayer: true
     labels:
       maintainer: HIDRA / hidr4lisk
-      org.hidralisk.spike: "4b"
+      org.hidralisk.version: "0.1.1"
     args:
       DEBIAN_FRONTEND: noninteractive
     runs:
@@ -40,11 +40,11 @@ stages:
           # que desaparezcan del menú aunque el nombre del paquete no matchee.
           - apt-get remove -y --purge blackbox-terminal alacritty || true
           - rm -f /usr/share/applications/com.raggesilver.BlackBox.desktop /usr/share/applications/Alacritty.desktop
-          - printf 'NAME="Hidralisk OS"\nID=hidralisk-os\nVARIANT="spike-vib"\n' > /etc/hidralisk-os-release
+          - printf 'NAME="Hidralisk OS"\nID=hidralisk-os\nVERSION="0.1.1"\n' > /etc/hidralisk-os-release
           # Branding: pisar el os-release (PRETTY_NAME/NAME = Hidralisk OS). Mantengo ID=vanilla
           # a propósito → abroot/vso/lpkg keyean por ese ID; cambiarlo los rompería. /etc/os-release
           # es symlink a ../usr/lib/os-release, así que pisando este cubre ambos.
-          - printf 'PRETTY_NAME="Hidralisk OS"\nNAME="Hidralisk OS"\nVERSION_ID="2.0"\nVERSION="2.0 (spike-vib)"\nVERSION_CODENAME="orchid"\nID=vanilla\nID_LIKE=debian\nVARIANT="Hidralisk OS (spike-vib)"\nVARIANT_ID=hidralisk-os\nLOGO=hidralisk-os-logo\nHOME_URL="https://github.com/hidr4lisk/hidralisk-os"\nSUPPORT_URL="https://github.com/hidr4lisk/hidralisk-os"\nBUG_REPORT_URL="https://github.com/hidr4lisk/hidralisk-os/issues"\n' > /usr/lib/os-release
+          - printf 'PRETTY_NAME="Hidralisk OS"\nNAME="Hidralisk OS"\nVERSION_ID="0.1.1"\nVERSION="0.1.1 (orchid)"\nVERSION_CODENAME="orchid"\nID=vanilla\nID_LIKE=debian\nVARIANT="Hidralisk OS"\nVARIANT_ID=hidralisk-os\nLOGO=hidralisk-os-logo\nHOME_URL="https://github.com/hidr4lisk/hidralisk-os"\nSUPPORT_URL="https://github.com/hidr4lisk/hidralisk-os"\nBUG_REPORT_URL="https://github.com/hidr4lisk/hidralisk-os/issues"\n' > /usr/lib/os-release
           # Logo del panel Ajustes > Acerca de (GtkPicture os_logo): gnome-control-center lo toma de
           # la clave LOGO del os-release (arriba) buscando ese icono en el tema. Instalamos el dragón
           # con ese nombre y, de paso, pisamos la flor de Vanilla del FirstSetup (por si algo la usa).
@@ -98,20 +98,23 @@ stages:
           - cp /sources/hidralisk/branding/starship.toml /etc/starship.toml
           - sed -i 's|^SHELL=.*|SHELL=/usr/bin/zsh|' /etc/default/useradd
           - update-initramfs -u
-          - systemctl enable ssh
           # App de estado propia ("super neofetch"): hidrafetch describe ESTA instalación
           # (hardware + postura de hardening + integridad ABRoot). Solo stdlib de python3
           # (ya en la base), impersonal. Se instala como comando del sistema.
           - install -Dm755 /sources/hidralisk/status/hidrafetch /usr/bin/hidrafetch
           # Spike-7 hardening: postura de seguridad POR DEFECTO (el diferenciador del SO).
           # sysctl endurecido (ver HARDENING.md, reconciliado con apx: NO se tocan
-          # userns/bpf que romperían distrobox/podman). Firewall ufw default-deny incoming +
-          # SSH permitido (la imagen trae openssh-server). Se evita `ufw enable` (carga reglas,
-          # falla en el build): se setea ENABLED=yes + se habilita el servicio (aplica al boot).
+          # userns/bpf que romperían distrobox/podman). Firewall ufw default-deny incoming
+          # SIN puertos abiertos. Se evita `ufw enable` (carga reglas, falla en el build):
+          # se setea ENABLED=yes + se habilita el servicio (aplica al boot).
+          # SSH viene APAGADO: openssh-server queda instalado pero sin habilitar — con el
+          # usuario por defecto hidra/hidra publicado, un sshd escuchando sería una puerta
+          # abierta en LAN. Quien lo necesite: systemctl enable --now ssh + ufw limit 22/tcp
+          # (documentado en HARDENING.md). El drop-in de sshd endurecido ya queda listo.
           - cp /sources/hidralisk/hardening/99-hidra-hardening.conf /etc/sysctl.d/99-hidra-hardening.conf
+          - install -Dm644 /sources/hidralisk/hardening/99-hidra-sshd.conf /etc/ssh/sshd_config.d/99-hidra-sshd.conf
           - ufw default deny incoming
           - ufw default allow outgoing
-          - ufw allow 22/tcp
           - sed -i 's/^ENABLED=.*/ENABLED=yes/' /etc/ufw/ufw.conf
           - systemctl enable ufw
           # Spike-8: cazar a Vanilla de la interfaz + escritorio tipo Mint + arreglos de boot.
@@ -142,3 +145,4 @@ stages:
           # trabajo). Por eso el shim de cortesia (guia apx/flatpak/abroot) va DESPUES del lock: si no, lo borra.
           - install -Dm755 /sources/hidralisk/apt-shim /usr/bin/apt
           - ln -sf apt /usr/bin/apt-get
+          - ln -sf apt /usr/bin/dpkg
