@@ -3,6 +3,14 @@
 Estado real del proyecto y lo que viene. Para el *por qué* de las decisiones de base, ver
 [`docs/adr/`](docs/adr/).
 
+## 🐉 Release actual: v0.1.0 (2026-07-01)
+
+**Primera ISO instalable pública** → [Releases](https://github.com/hidr4lisk/hidralisk-os/releases/tag/v0.1.0).
+La ISO (~2.14 GiB) va **partida en 2** por el límite de 2 GiB de GitHub (se rearma con `cat`). Instala la
+imagen `ghcr.io/hidr4lisk/hidralisk-os:latest`. Incluye, además de lo de abajo: **Flathub** preconfigurado
+(vía firstboot), **Desktop Icons NG** (íconos + selección en el escritorio), **logo propio en Ajustes>Acerca de**,
+**tema oscuro por defecto** y un **shim de `apt`** que guía a `apx`/`flatpak`/`abroot`.
+
 ## Dónde está hoy
 
 Hidralisk OS **instala y bootea** desde nuestra imagen OCI (`ghcr.io/hidr4lisk/hidralisk-os`)

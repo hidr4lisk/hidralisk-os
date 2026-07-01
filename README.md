@@ -25,6 +25,12 @@ una distro inmutable —cómo se construye, se firma, se instala y se mantiene�
 > corre con todo puesto (hardening, escritorio propio, `apx` operativo, usuario listo con `sudo`).
 > En desarrollo activo — ver [`ROADMAP.md`](ROADMAP.md).
 
+## ⬇️ Descargar
+
+**Primera ISO instalable:** [Releases → v0.1.0](https://github.com/hidr4lisk/hidralisk-os/releases/tag/v0.1.0).
+La ISO va **partida en dos** (límite de 2 GiB de GitHub); se rearma con `cat` (instrucciones en la release) y
+se flashea con Etcher/Ventoy/`dd`. Usuario por defecto **hidra/hidra** (cambialo con `passwd` tras instalar).
+
 ---
 
 ## Qué la diferencia
