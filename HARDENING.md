@@ -38,13 +38,27 @@ Estas líneas, comunes en guías de hardening, romperían los contenedores rootl
 
 Si en el futuro Hidralisk deja de depender de `apx`, se re-evalúan.
 
-## 2. Firewall (`ufw`) — ✅ materializado
+## 2. Firewall (`ufw`) y SSH — ✅ materializado
 
 Aplicado en el `vib/recipe.yml`:
 
-- `ufw default deny incoming` + `ufw default allow outgoing`
-- `ufw allow 22/tcp` (la imagen trae `openssh-server`)
+- `ufw default deny incoming` + `ufw default allow outgoing` — **sin puertos abiertos**.
 - `ENABLED=yes` + servicio habilitado → la política se aplica en el primer arranque.
+- **SSH viene APAGADO por defecto.** `openssh-server` está instalado pero el servicio no se
+  habilita ni se abre el puerto: con un usuario por defecto conocido (`hidra`/`hidra`), un `sshd`
+  escuchando desde el primer boot sería una puerta abierta en la LAN — exactamente lo contrario
+  del pitch. Quien lo necesite lo enciende conscientemente:
+
+  ```sh
+  sudo systemctl enable --now ssh
+  sudo ufw limit 22/tcp        # limit (no allow): rate-limit anti fuerza bruta
+  ```
+
+- **Drop-in de `sshd` endurecido, listo de fábrica** — cuando el usuario enciende SSH, ya arranca
+  endurecido sin checklist: [`99-hidra-sshd.conf`](vib/sources/hidralisk/hardening/99-hidra-sshd.conf)
+  (`PermitRootLogin no`, `MaxAuthTries 4`) instalado en `/etc/ssh/sshd_config.d/`.
+- **Cambio de contraseña forzado**: la contraseña por defecto (`hidra`) nace expirada (`chage -d 0`
+  en el primer arranque) — el sistema exige cambiarla en el primer `sudo` / login con contraseña.
 
 ## 3. Postura general — heredado de Vanilla OS 2
 
