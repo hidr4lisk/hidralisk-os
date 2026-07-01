@@ -1,0 +1,27 @@
+#!/bin/sh
+# Description: Hidralisk OS - durante la instalacion, el instalador muestra un slideshow de Vanilla
+# con un boton "Show console output". Preferimos ver la CONSOLA por defecto (que se vea el codigo,
+# no las imagenes de Vanilla). `progress.py` es un .py PLANO (no esta en el gresource), asi que lo
+# parcheamos: al construir la vista, disparar el mismo metodo que el boton (arranca en consola).
+#
+# Corre despues de 001 (que instala vanilla-installer). No-fatal + idempotente.
+set -e
+
+P=/usr/share/org.vanillaos.Installer/vanilla_installer/views/progress.py
+[ -f "$P" ] || { echo "[hidralisk] progress.py del instalador ausente, salteo"; exit 0; }
+
+python3 - "$P" <<'PY'
+import sys
+p = sys.argv[1]
+s = open(p).read()
+anchor = 'self.console_button.connect("clicked", self.__on_console_button)'
+mark = '__on_console_button()  # Hidralisk'
+add = '\n        self.__on_console_button()  # Hidralisk: consola por defecto (no slideshow)'
+if mark in s:
+    print("[hidralisk] progress.py ya parcheado")
+elif anchor in s:
+    open(p, "w").write(s.replace(anchor, anchor + add, 1))
+    print("[hidralisk] progress.py: consola por defecto (no slideshow)")
+else:
+    print("[hidralisk] WARN: ancla no encontrada en progress.py, sin cambios")
+PY
