@@ -2,17 +2,27 @@
 
 [![CI](https://github.com/hidr4lisk/hidralisk-os/actions/workflows/ci.yml/badge.svg)](https://github.com/hidr4lisk/hidralisk-os/actions/workflows/ci.yml)
 
-**Distribución Linux inmutable, atómica y endurecida por defecto** — construida sobre
-[Vanilla OS 2](https://vanillaos.org), con identidad, shell y postura de seguridad propias.
+**Una distribución Linux propia, inmutable y endurecida por defecto**, construida de punta a
+punta sobre [Vanilla OS 2](https://vanillaos.org).
 
-Hidralisk OS no reinventa el sistema operativo: parte de una base inmutable madura
-(ABRoot A/B, OCI, composefs/fs-verity) y construye **encima** lo que la diferencia —
-**seguridad por defecto**, una **experiencia de terminal lista para usar**, y branding propio
-de punta a punta. El sistema base es de solo lectura y se actualiza de forma transaccional;
-si algo sale mal, el rollback es atómico.
+### En una frase
 
-> Estado: **funcional, verificado end-to-end**. Instala desde una ISO custom, **bootea limpio** y
-> corre con todo su diferenciador puesto: hardening por defecto, escritorio propio y `apx` operativo.
+Un Linux que **viene seguro de fábrica** y que **no se rompe**: el sistema base es de solo lectura,
+y cada actualización es atómica y reversible — si algo sale mal, **vuelve solo al estado anterior**.
+Sobre esa base le sumamos lo que lo hace nuestro: seguridad activada por defecto, un escritorio
+tradicional (tipo Mint) y una terminal lista para trabajar apenas instalás.
+
+### Por qué existe
+
+Hidralisk OS es, ante todo, un **proyecto de aprendizaje y showcase**: el objetivo es construir una
+distribución inmutable **de cero a instalable** y, en el camino, dejarla realmente usable. **No busca
+competir** con Ubuntu, Fedora ni con la propia Vanilla OS — su valor está en *mostrar cómo se arma*
+una distro atómica y segura sobre una base madura: imagen OCI propia, ISO instalable, hardening,
+branding e integración, todo reproducible y documentado. Si te interesa el **detrás de escena** de
+una distro inmutable —cómo se construye, se firma, se instala y se mantiene— este repo es eso.
+
+> **Estado:** funcional, **verificado end-to-end** — instala desde una ISO custom, **bootea limpio** y
+> corre con todo puesto (hardening, escritorio propio, `apx` operativo, usuario listo con `sudo`).
 > En desarrollo activo — ver [`ROADMAP.md`](ROADMAP.md).
 
 ---
