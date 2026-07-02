@@ -3,20 +3,31 @@
 Estado real del proyecto y lo que viene. Para el *por qué* de las decisiones de base, ver
 [`docs/adr/`](docs/adr/).
 
-## 🐉 Release actual: v0.1.0 (2026-07-01)
+## 🐉 Release actual: v0.1.1 (2026-07-02) — endurecimiento
 
-**Primera ISO instalable pública** → [Releases](https://github.com/hidr4lisk/hidralisk-os/releases/tag/v0.1.0).
-La ISO (~2.14 GiB) va **partida en 2** por el límite de 2 GiB de GitHub (se rearma con `cat`). Instala la
-imagen `ghcr.io/hidr4lisk/hidralisk-os:latest`. Incluye, además de lo de abajo: **Flathub** preconfigurado
-(vía firstboot), **Desktop Icons NG** (íconos + selección en el escritorio), **logo propio en Ajustes>Acerca de**,
-**tema oscuro por defecto** y un **shim de `apt`** que guía a `apx`/`flatpak`/`abroot`.
+→ [Releases](https://github.com/hidr4lisk/hidralisk-os/releases/tag/v0.1.1) (final, marcada `latest`).
+Sobre la v0.1.0 agrega, con foco en **seguridad por defecto**:
+- **SSH APAGADO por defecto** — `openssh-server` instalado pero sin `systemctl enable ssh` ni `ufw allow 22`
+  (con `hidra`/`hidra` público, un sshd escuchando era una puerta abierta). Se enciende a mano:
+  `systemctl enable --now ssh` + `ufw limit 22/tcp`.
+- **Drop-in de `sshd` endurecido** (`/etc/ssh/sshd_config.d/99-hidra-sshd.conf`: `PermitRootLogin no`,
+  `MaxAuthTries 4`) — listo para cuando el usuario encienda SSH.
+- **Firewall sin puertos abiertos** (ufw deny-incoming, ya sin el `allow 22`).
+- **Versión** `0.1.1` en el os-release. **Instalación solo-consola** (hook 083 oculta el `tour_button`).
 
-✅ **Verificado end-to-end en vivo (2026-07-01, KVM):** instala desde la ISO, **bootea limpio** (GRUB carga
-`vmlinuz-6.17.9+deb14-amd64`), hostname `hidralisk`, `hidra` con `sudo (ALL:ALL) ALL` + zsh + Starship,
-**Ptyxis único** (Black Box + Alacritty purgados), **Flathub** registrado (`flathub system`), **DING** activo
-y `LOGO=` propio en Acerca de. (Nota de infra: el *deploy* del instalador puede sufrir corrupción transitoria
-de composefs/btrfs — pegó 2× seguidas antes de deployar sano; el fix es reintentar con disco limpio, no es la
-imagen ni el hardware.)
+✅ **Verificado end-to-end en vivo (2026-07-02, KVM):** instala desde la ISO 20260701 (imagen `93f5d9bf`),
+**bootea limpio**, **autologin entra al escritorio** (panel Mint + dragón + DING), `hidra` UID 1200 zsh+sudo,
+SSH `disabled`+`inactive`, `ufw` deny-incoming activo, drop-in sshd presente, os-release 0.1.1, `hidrafetch`
+PARCIAL 6/8. Instalador dice **"Install Hidralisk OS"** y arranca en **consola** (hooks 082/083).
+
+> ⚠️ **Lección cara (verificada en vivo):** NO expirar la contraseña con `chage -d 0`. Con `AutomaticLogin=hidra`
+> GDM entra por `gdm-autologin`, pero el phase `account` de pam ve la pass expirada y dispara `chauthtok`, que
+> **no tiene conversación en autologin** → `conversation failed` y la sesión NUNCA arranca (queda en el Plymouth).
+> El cambio de pass se pide por README; forzarlo requeriría sacar el autologin (ver Hardening §roadmap).
+
+> **Nota de infra:** el *deploy* del instalador puede sufrir corrupción transitoria de composefs/btrfs (GRUB
+> chainload `configfile abroot.cfg` falla en silencio → menú sin bootear). No es la imagen ni el hardware:
+> reintentar la instalación con disco limpio (pegó al 2º intento).
 
 ## Dónde está hoy
 
@@ -40,6 +51,11 @@ mediante una ISO custom. Lo que ya funciona:
 
 ## Próximo
 
+- **Shim de cortesía `apt`/`dpkg` no sobrevive al deploy de ABRoot** (descubierto 2026-07-02): en la imagen,
+  tras `lpkg --lock` (que **renombra** apt/dpkg → `private.apt`/`private.dpkg`, NO los borra) instalamos
+  `/usr/bin/apt` (+ symlinks `apt-get`/`dpkg`). Verificado en la imagen, pero en el **sistema instalado NO
+  están** → `apt` da *command not found*. Afecta también al shim de la v0.1.0. Investigar por qué el deploy
+  los quita y reinstalarlos de forma que persista (p.ej. via firstboot a `/var`, o placement compatible con lpkg).
 - ~~**Showcase de instalación end-to-end** desde la ISO~~ ✅ **verificado en vivo (2026-06-30, KVM)**: instala,
   **bootea limpio** (sin la pantalla roja de FsGuard), barra Mint + dragón, avatar + `Session=gnome` (sin la
   flor), usuario en zsh, **hidrafetch ENDURECIDO 7/8** + ufw, ABRoot A/B. (Gotcha resuelto: no borrar
