@@ -65,11 +65,12 @@ mediante una ISO custom. Lo que ya funciona:
   **Recuperación probada**: montar el disco (qemu-nbd en la VM / live-USB en hardware) y restaurar
   `grub.cfg` desde `grub.cfg.future` (bootea el slot viejo; para el nuevo, poner su `menuentry` primero).
   Roadmap: evaluar mitigación (write-temp+rename atómico upstream, o entry de rescate en GRUB embebida).
-- **`abroot upgrade` pierde el autologin**: el `AutomaticLogin=hidra` que el instalador escribe en
-  `/etc/gdm3/daemon.conf` vive en el /etc del slot A y no migra al slot nuevo (el /etc del slot nuevo sale
-  de la imagen + overlay; `passwd`/`hostname` sí sobreviven) → tras un update aparece el greeter y hay que
-  loguearse como `hidra` a mano. Decidir: hornear `AutomaticLogin=hidra` en la imagen (persistiría en cada
-  upgrade) vs. aceptar el greeter post-update como comportamiento (más razonable para una distro hardened).
+- ~~**`abroot upgrade` pierde el autologin**~~ ✅ **DECIDIDO (2026-07-02): queda así, por diseño.** El
+  `AutomaticLogin=hidra` que el instalador escribe en `/etc/gdm3/daemon.conf` vive en el /etc del slot A y
+  no migra al slot nuevo (el /etc del slot nuevo sale de la imagen + overlay; `passwd`/`hostname` sí
+  sobreviven) → tras el primer update aparece el **greeter de GDM** y se loguea como `hidra`. Se acepta
+  como comportamiento: NO se hornea `AutomaticLogin` en la imagen — coherente con una distro hardened
+  (el autologin queda como comodidad solo de la instalación inicial). Documentado en HARDENING §2 y README.
 - ~~**Showcase de instalación end-to-end** desde la ISO~~ ✅ **verificado en vivo (2026-06-30, KVM)**: instala,
   **bootea limpio** (sin la pantalla roja de FsGuard), barra Mint + dragón, avatar + `Session=gnome` (sin la
   flor), usuario en zsh, **hidrafetch ENDURECIDO 7/8** + ufw, ABRoot A/B. (Gotcha resuelto: no borrar

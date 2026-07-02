@@ -61,6 +61,11 @@ Aplicado en el `vib/recipe.yml`:
   release). No se fuerza con `chage -d 0`: verificado en vivo que con `AutomaticLogin=hidra` una pass
   expirada rompe el autologin de GDM (`gdm-autologin:chauthtok: conversation failed` → sesión que no
   arranca). Forzar el cambio requeriría desactivar el autologin — ver roadmap.
+- **Autologin solo en la instalación inicial (por diseño)** — el `AutomaticLogin=hidra` lo escribe el
+  instalador en el `/etc` del primer slot y **no persiste** tras un `abroot upgrade`: desde el primer
+  update en adelante aparece el **greeter de GDM** y hay que loguearse. Decisión deliberada (2026-07-02):
+  no se hornea el autologin en la imagen — que el sistema converja a pedir login es coherente con la
+  postura hardened; el autologin inicial queda solo como comodidad de estreno.
 
 ## 3. Postura general — heredado de Vanilla OS 2
 

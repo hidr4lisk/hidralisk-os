@@ -34,6 +34,8 @@ se flashea con Etcher/Ventoy/`dd`.
 > 🔑 **Credenciales por defecto: usuario `hidra` / contraseña `hidra`.**
 > Cambiala apenas entres con `passwd` (y podés renombrar el usuario si querés).
 > SSH viene **apagado** por defecto, así que esas credenciales no dan acceso remoto.
+> El autologin aplica solo a la instalación inicial: después del primer update del sistema
+> (`abroot upgrade`) vas a ver la pantalla de login de GDM — entrá como `hidra` con tu contraseña.
 
 ---
 
