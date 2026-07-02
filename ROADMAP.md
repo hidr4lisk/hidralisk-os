@@ -51,14 +51,25 @@ mediante una ISO custom. Lo que ya funciona:
 
 ## Próximo
 
-- **Shim de cortesía `apt`/`dpkg` no sobrevive al deploy de ABRoot** (descubierto 2026-07-02) — **FIX
-  BUILDEADO, falta verificación en vivo**: la causa es que el deploy re-corre `lpkg --unlock`/`lpkg --lock`
-  (son el `iPkgMngPre`/`iPkgMngPost` de `abroot.json`), y el lock quita los nombres `apt`/`dpkg` de
-  `/usr/bin` — por eso un shim ahí no llega al instalado (afectó a v0.1.0 y v0.1.1). El fix (`261c7c2`)
-  lo mueve a **`/usr/local/bin`** (lpkg no lo toca y va primero en el PATH); imagen `e4e9803c` en GHCR
-  `:latest`+`:main`. ✅ Verificado en podman que el ciclo `lpkg --unlock && lpkg --lock` deja el shim
-  intacto en `/usr/local/bin`. ⏳ Pendiente: verificar en el sistema instalado real (`abroot upgrade`
-  en la VM de prueba, o la próxima instalación desde ISO).
+- ~~**Shim de cortesía `apt`/`dpkg` no sobrevive al deploy de ABRoot**~~ ✅ **RESUELTO Y VERIFICADO EN VIVO
+  (2026-07-02)**: la causa era que el deploy re-corre `lpkg --unlock`/`lpkg --lock` (son el
+  `iPkgMngPre`/`iPkgMngPost` de `abroot.json`), y el lock quita los nombres `apt`/`dpkg` de `/usr/bin` —
+  por eso un shim ahí no llegaba al instalado (afectó a v0.1.0 y v0.1.1). El fix (`261c7c2`) lo mueve a
+  **`/usr/local/bin`** (lpkg no lo toca y va primero en el PATH); imagen `e4e9803c` en GHCR `:latest`+`:main`.
+  Verificado end-to-end: `abroot upgrade` → boot al slot nuevo → `apt`/`apt-get`/`dpkg` presentes y el shim
+  imprime la guía. La ISO publicada no cambia (baja `:latest` al instalar, ya con el fix).
+- **🔴 GOTCHA GRAVE descubierto: un `abroot upgrade` interrumpido puede dejar el sistema SIN BOOT.** El
+  último paso del upgrade escribe `grub.cfg` de forma NO atómica; un corte en esa ventana lo deja en 0 bytes
+  → GRUB cae a prompt pelado y ningún slot bootea (pasó el 2026-07-01 22:48 en la VM de prueba). ABRoot
+  mantiene DOS configs (`grub.cfg` y `grub.cfg.future`, una por slot) y las intercambia en cada upgrade.
+  **Recuperación probada**: montar el disco (qemu-nbd en la VM / live-USB en hardware) y restaurar
+  `grub.cfg` desde `grub.cfg.future` (bootea el slot viejo; para el nuevo, poner su `menuentry` primero).
+  Roadmap: evaluar mitigación (write-temp+rename atómico upstream, o entry de rescate en GRUB embebida).
+- **`abroot upgrade` pierde el autologin**: el `AutomaticLogin=hidra` que el instalador escribe en
+  `/etc/gdm3/daemon.conf` vive en el /etc del slot A y no migra al slot nuevo (el /etc del slot nuevo sale
+  de la imagen + overlay; `passwd`/`hostname` sí sobreviven) → tras un update aparece el greeter y hay que
+  loguearse como `hidra` a mano. Decidir: hornear `AutomaticLogin=hidra` en la imagen (persistiría en cada
+  upgrade) vs. aceptar el greeter post-update como comportamiento (más razonable para una distro hardened).
 - ~~**Showcase de instalación end-to-end** desde la ISO~~ ✅ **verificado en vivo (2026-06-30, KVM)**: instala,
   **bootea limpio** (sin la pantalla roja de FsGuard), barra Mint + dragón, avatar + `Session=gnome` (sin la
   flor), usuario en zsh, **hidrafetch ENDURECIDO 7/8** + ufw, ABRoot A/B. (Gotcha resuelto: no borrar
