@@ -51,11 +51,14 @@ mediante una ISO custom. Lo que ya funciona:
 
 ## Próximo
 
-- **Shim de cortesía `apt`/`dpkg` no sobrevive al deploy de ABRoot** (descubierto 2026-07-02): en la imagen,
-  tras `lpkg --lock` (que **renombra** apt/dpkg → `private.apt`/`private.dpkg`, NO los borra) instalamos
-  `/usr/bin/apt` (+ symlinks `apt-get`/`dpkg`). Verificado en la imagen, pero en el **sistema instalado NO
-  están** → `apt` da *command not found*. Afecta también al shim de la v0.1.0. Investigar por qué el deploy
-  los quita y reinstalarlos de forma que persista (p.ej. via firstboot a `/var`, o placement compatible con lpkg).
+- **Shim de cortesía `apt`/`dpkg` no sobrevive al deploy de ABRoot** (descubierto 2026-07-02) — **FIX
+  BUILDEADO, falta verificación en vivo**: la causa es que el deploy re-corre `lpkg --unlock`/`lpkg --lock`
+  (son el `iPkgMngPre`/`iPkgMngPost` de `abroot.json`), y el lock quita los nombres `apt`/`dpkg` de
+  `/usr/bin` — por eso un shim ahí no llega al instalado (afectó a v0.1.0 y v0.1.1). El fix (`261c7c2`)
+  lo mueve a **`/usr/local/bin`** (lpkg no lo toca y va primero en el PATH); imagen `e4e9803c` en GHCR
+  `:latest`+`:main`. ✅ Verificado en podman que el ciclo `lpkg --unlock && lpkg --lock` deja el shim
+  intacto en `/usr/local/bin`. ⏳ Pendiente: verificar en el sistema instalado real (`abroot upgrade`
+  en la VM de prueba, o la próxima instalación desde ISO).
 - ~~**Showcase de instalación end-to-end** desde la ISO~~ ✅ **verificado en vivo (2026-06-30, KVM)**: instala,
   **bootea limpio** (sin la pantalla roja de FsGuard), barra Mint + dragón, avatar + `Session=gnome` (sin la
   flor), usuario en zsh, **hidrafetch ENDURECIDO 7/8** + ufw, ABRoot A/B. (Gotcha resuelto: no borrar
