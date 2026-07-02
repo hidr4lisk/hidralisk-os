@@ -57,8 +57,10 @@ Aplicado en el `vib/recipe.yml`:
 - **Drop-in de `sshd` endurecido, listo de fábrica** — cuando el usuario enciende SSH, ya arranca
   endurecido sin checklist: [`99-hidra-sshd.conf`](vib/sources/hidralisk/hardening/99-hidra-sshd.conf)
   (`PermitRootLogin no`, `MaxAuthTries 4`) instalado en `/etc/ssh/sshd_config.d/`.
-- **Cambio de contraseña forzado**: la contraseña por defecto (`hidra`) nace expirada (`chage -d 0`
-  en el primer arranque) — el sistema exige cambiarla en el primer `sudo` / login con contraseña.
+- **Contraseña por defecto** — `hidra`/`hidra`; se pide cambiarla con `passwd` (README + notas de
+  release). No se fuerza con `chage -d 0`: verificado en vivo que con `AutomaticLogin=hidra` una pass
+  expirada rompe el autologin de GDM (`gdm-autologin:chauthtok: conversation failed` → sesión que no
+  arranca). Forzar el cambio requeriría desactivar el autologin — ver roadmap.
 
 ## 3. Postura general — heredado de Vanilla OS 2
 
@@ -102,6 +104,9 @@ Lo materializado hoy (sysctl + ufw) es la **primera capa**. Lo que sigue, en ord
 6. **FsGuard con clave propia** — recompilar el binario con nuestra pública minisign + generar y firmar
    nuestro `filelist` sobre la imagen final, para recuperar la verificación de integridad firmada.
 7. **Minimización de servicios** — apagar lo que no se usa por defecto.
+8. **Forzar el cambio de la contraseña por defecto** — hoy `AutomaticLogin=hidra` impide expirar la
+   pass (rompe el autologin). Evaluar **desactivar el autologin** + `chage -d 0`: así el greeter de GDM
+   (que sí soporta el diálogo de cambio) exige la contraseña nueva en el primer login.
 
 Cada fase se materializa en `vib/recipe.yml` (o sus `sources/`) y se valida en una instalación real
 antes de darse por cerrada. La regla del §0 (no romper `apx`/ABRoot) aplica a todas.

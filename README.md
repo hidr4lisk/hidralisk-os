@@ -32,8 +32,8 @@ La ISO va **partida en dos** (límite de 2 GiB de GitHub); se rearma con `cat` (
 se flashea con Etcher/Ventoy/`dd`.
 
 > 🔑 **Credenciales por defecto: usuario `hidra` / contraseña `hidra`.**
-> La contraseña nace **expirada**: el sistema te exige cambiarla en el primer `sudo` o login con
-> contraseña (y podés renombrar el usuario si querés). SSH viene **apagado** por defecto.
+> Cambiala apenas entres con `passwd` (y podés renombrar el usuario si querés).
+> SSH viene **apagado** por defecto, así que esas credenciales no dan acceso remoto.
 
 ---
 
