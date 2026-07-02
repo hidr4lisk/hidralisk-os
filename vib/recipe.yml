@@ -141,8 +141,12 @@ stages:
           - apt-get autoremove -y
           - apt-get clean
           - lpkg --lock
-          # apt no existe en un sistema inmutable: `lpkg --lock` BORRA apt/apt-get/dpkg de /usr/bin (ese es su
-          # trabajo). Por eso el shim de cortesia (guia apx/flatpak/abroot) va DESPUES del lock: si no, lo borra.
-          - install -Dm755 /sources/hidralisk/apt-shim /usr/bin/apt
-          - ln -sf apt /usr/bin/apt-get
-          - ln -sf apt /usr/bin/dpkg
+          # apt no existe en un sistema inmutable: `lpkg --lock` RENOMBRA apt/apt-get/dpkg de /usr/bin a
+          # `private.*` (los "locka"; su binstring dice "Locks apt and dpkg binaries"). El shim de cortesia
+          # (guia apx/flatpak/abroot) va en /usr/local/bin, NO en /usr/bin: (1) lpkg re-corre en el deploy de
+          # ABRoot y BORRARIA un shim con nombre apt/dpkg en /usr/bin (verificado en vivo 2026-07-02: por eso el
+          # shim de v0.1.0/v0.1.1 no llegaba al instalado); (2) /usr/local/bin va PRIMERO en el PATH y lpkg solo
+          # mira /usr/bin, asi que aca sobrevive y gana. Verificado end-to-end.
+          - install -Dm755 /sources/hidralisk/apt-shim /usr/local/bin/apt
+          - ln -sf apt /usr/local/bin/apt-get
+          - ln -sf apt /usr/local/bin/dpkg
