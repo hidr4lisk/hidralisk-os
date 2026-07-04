@@ -2,135 +2,139 @@
 
 [![CI](https://github.com/hidr4lisk/hidralisk-os/actions/workflows/ci.yml/badge.svg)](https://github.com/hidr4lisk/hidralisk-os/actions/workflows/ci.yml)
 
-**Una distribución Linux propia, inmutable y endurecida por defecto**, construida de punta a
-punta sobre [Vanilla OS 2](https://vanillaos.org).
+**A custom Linux distribution, immutable and hardened by default**, built end to end
+on top of [Vanilla OS 2](https://vanillaos.org).
 
-### En una frase
+🌐 **[Website](https://hidr4lisk.github.io/hidralisk-os/)** · 🇦🇷 **[Leer en español](./README.es.md)**
 
-Un Linux que **viene seguro de fábrica** y que **no se rompe**: el sistema base es de solo lectura,
-y cada actualización es atómica y reversible — si algo sale mal, **vuelve solo al estado anterior**.
-Sobre esa base le sumamos lo que lo hace nuestro: seguridad activada por defecto, un escritorio
-tradicional (tipo Mint) y una terminal lista para trabajar apenas instalás.
+### In one sentence
 
-### Por qué existe
+A Linux that **ships secure out of the box** and **doesn't break**: the base system is read-only,
+and every update is atomic and reversible — if something goes wrong, it **rolls back to the previous
+state on its own**. On top of that base we add what makes it ours: security enabled by default, a
+traditional (Mint-style) desktop, and a terminal that's ready to work the moment you install.
 
-Hidralisk OS es, ante todo, un **proyecto de aprendizaje y showcase**: el objetivo es construir una
-distribución inmutable **de cero a instalable** y, en el camino, dejarla realmente usable. **No busca
-competir** con Ubuntu, Fedora ni con la propia Vanilla OS — su valor está en *mostrar cómo se arma*
-una distro atómica y segura sobre una base madura: imagen OCI propia, ISO instalable, hardening,
-branding e integración, todo reproducible y documentado. Si te interesa el **detrás de escena** de
-una distro inmutable —cómo se construye, se firma, se instala y se mantiene— este repo es eso.
+### Why it exists
 
-> **Estado:** funcional, **verificado end-to-end** — instala desde una ISO custom, **bootea limpio** y
-> corre con todo puesto (hardening, escritorio propio, `apx` operativo, usuario listo con `sudo`).
-> En desarrollo activo — ver [`ROADMAP.md`](ROADMAP.md).
+Hidralisk OS is, above all, a **learning and showcase project**: the goal is to build an immutable
+distribution **from zero to installable** and, along the way, make it genuinely usable. It **doesn't
+try to compete** with Ubuntu, Fedora or Vanilla OS itself — its value is in *showing how an atomic,
+secure distro is put together* on top of a mature base: a custom OCI image, an installable ISO,
+hardening, branding and integration, all reproducible and documented. If you're interested in the
+**behind the scenes** of an immutable distro — how it's built, signed, installed and maintained —
+this repo is exactly that.
 
-## ⬇️ Descargar
+> **Status:** functional, **verified end-to-end** — it installs from a custom ISO, **boots clean** and
+> runs with everything in place (hardening, custom desktop, working `apx`, default user with `sudo`).
+> Under active development — see [`ROADMAP.md`](ROADMAP.md).
 
-**Última ISO instalable:** [Releases](https://github.com/hidr4lisk/hidralisk-os/releases/latest).
-La ISO va **partida en dos** (límite de 2 GiB de GitHub); se rearma con `cat` (instrucciones en la release) y
-se flashea con Etcher/Ventoy/`dd`.
+## ⬇️ Download
 
-> 🔑 **Credenciales por defecto: usuario `hidra` / contraseña `hidra`.**
-> Cambiala apenas entres con `passwd` (y podés renombrar el usuario si querés).
-> SSH viene **apagado** por defecto, así que esas credenciales no dan acceso remoto.
-> El autologin aplica solo a la instalación inicial: después del primer update del sistema
-> (`abroot upgrade`) vas a ver la pantalla de login de GDM — entrá como `hidra` con tu contraseña.
+**Latest installable ISO:** [Releases](https://github.com/hidr4lisk/hidralisk-os/releases/latest) ·
+step-by-step instructions on the [website](https://hidr4lisk.github.io/hidralisk-os/#descargar).
+The ISO ships **split in two parts** (GitHub's 2 GiB limit); rebuild it with `cat` (instructions in
+the release) and flash it with Etcher/Ventoy/`dd`.
 
----
-
-## Qué la diferencia
-
-### 🛡️ Seguridad por defecto, no opcional
-El diferenciador central. La imagen viene endurecida de fábrica, no como un checklist que el
-usuario tiene que aplicar después:
-
-- **Kernel hardening** vía `sysctl` (ASLR completo, `kptr_restrict`, `dmesg_restrict`,
-  `kexec_load_disabled`, protección de symlinks/hardlinks, anti-spoofing de red, SYN cookies,
-  BPF JIT hardening). Ver [`HARDENING.md`](HARDENING.md).
-- **Firewall `ufw` con política `deny incoming`** activa desde el primer arranque, **sin puertos
-  abiertos**. **SSH viene apagado** (con usuario por defecto conocido, un `sshd` escuchando sería
-  una puerta abierta); se enciende con dos comandos y ya arranca endurecido
-  (`PermitRootLogin no`) — ver [`HARDENING.md`](HARDENING.md).
-- **Reconciliado con el modelo de contenedores de Vanilla** (`apx` / distrobox / podman rootless):
-  se omiten a propósito los ajustes que romperían los contenedores sin privilegios. Seguridad
-  real, sin sacrificar usabilidad.
-
-### 🐚 Experiencia de terminal lista para usar
-Vanilla viene con GNOME pelado y sin terminal. Hidralisk OS trae, configurado a nivel sistema:
-
-- **zsh** como shell por defecto, con `zsh-autosuggestions` + `zsh-syntax-highlighting`.
-- **Starship** con un prompt temático propio.
-- **Ptyxis** como **único** terminal (sin duplicados) + **Hack Nerd Font**.
-- **`sudo` listo** — el usuario por defecto tiene privilegios de administrador desde el arranque.
-- Configuración **impersonal y system-wide** (`/etc/zsh/zshrc`, `/etc/starship.toml`) — funciona
-  para cualquier usuario apenas instala, **sin dotfiles que copiar ni asistentes** en el primer login.
-
-### 🖥️ Escritorio tradicional, tipo Mint
-El GNOME pelado de Vanilla se convierte en una experiencia familiar, sin configurar nada:
-
-- **Panel arriba** con menú de apps + taskbar + bandeja (Dash to Panel).
-- **Menú de aplicaciones estilo Mint** cuyo botón es el dragón Hidralisk (Arc Menu).
-- **Color de acento Slate** (gris sobrio) en vez del amarillo de Vanilla.
-- Todo por defecto vía `dconf` system-wide; el usuario lo puede cambiar cuando quiera.
-
-### 📟 Se conoce a sí misma — `hidrafetch`
-Un *neofetch con esteroides* que viene con el sistema y describe **esta** instalación: hardware,
-**postura de hardening** (con veredicto `ENDURECIDO`/`PARCIAL`) e **integridad ABRoot** (A/B + imagen).
-Solo stdlib de Python, sin dependencias externas.
-
-### 🐉 Identidad propia de punta a punta
-GRUB, instalador, GDM, Plymouth, wallpaper de escritorio/login/sesión live y avatar de usuario
-por defecto: todo con la marca Hidralisk (el dragón). Nada de "Vanilla OS" residual a la vista.
+> 🔑 **Default credentials: user `hidra` / password `hidra`.**
+> Change it as soon as you log in with `passwd` (and rename the user if you like).
+> SSH ships **off** by default, so these credentials give no remote access.
+> Autologin applies to the initial install only: after the first system update
+> (`abroot upgrade`) you'll see the GDM login screen — log in as `hidra` with your password.
 
 ---
 
-## Arquitectura en una imagen
+## What sets it apart
+
+### 🛡️ Security by default, not optional
+The core differentiator. The image ships hardened from the factory, not as a checklist the user
+has to apply afterwards:
+
+- **Kernel hardening** via `sysctl` (full ASLR, `kptr_restrict`, `dmesg_restrict`,
+  `kexec_load_disabled`, symlink/hardlink protection, network anti-spoofing, SYN cookies,
+  BPF JIT hardening). See [`HARDENING.md`](HARDENING.md).
+- **`ufw` firewall with a `deny incoming` policy** active from the very first boot, **with no open
+  ports**. **SSH ships off** (with a well-known default user, a listening `sshd` would be an open
+  door); it can be enabled with two commands and starts already hardened
+  (`PermitRootLogin no`) — see [`HARDENING.md`](HARDENING.md).
+- **Reconciled with Vanilla's container model** (`apx` / distrobox / rootless podman):
+  the knobs that would break unprivileged containers are deliberately left out. Real security,
+  without sacrificing usability.
+
+### 🐚 A terminal experience that's ready to use
+Vanilla ships with bare GNOME and no terminal. Hidralisk OS brings, configured system-wide:
+
+- **zsh** as the default shell, with `zsh-autosuggestions` + `zsh-syntax-highlighting`.
+- **Starship** with a custom themed prompt.
+- **Ptyxis** as the **only** terminal (no duplicates) + **Hack Nerd Font**.
+- **`sudo` ready** — the default user has admin privileges from the start.
+- **Impersonal, system-wide** configuration (`/etc/zsh/zshrc`, `/etc/starship.toml`) — it works
+  for any user right after install, **no dotfiles to copy and no wizards** on first login.
+
+### 🖥️ A traditional, Mint-style desktop
+Vanilla's bare GNOME becomes a familiar experience, with nothing to configure:
+
+- **Top panel** with an app menu + taskbar + tray (Dash to Panel).
+- **Mint-style application menu** whose button is the Hidralisk dragon (Arc Menu).
+- **Slate accent color** (a sober gray) instead of Vanilla's yellow.
+- All by default via system-wide `dconf`; the user can change any of it at any time.
+
+### 📟 It knows itself — `hidrafetch`
+A *neofetch on steroids* that ships with the system and describes **this** installation: hardware,
+**hardening posture** (with a `HARDENED`/`PARTIAL` verdict) and **ABRoot integrity** (A/B + image).
+Python stdlib only, no external dependencies.
+
+### 🐉 Its own identity, end to end
+GRUB, installer, GDM, Plymouth, desktop/login/live-session wallpaper and default user avatar:
+everything carries the Hidralisk brand (the dragon). No residual "Vanilla OS" in sight.
+
+---
+
+## Architecture in one picture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  Capa Hidralisk  (lo que construimos nosotros)           │
+│  Hidralisk layer  (what we build)                        │
 │  · hardening (sysctl + ufw)   · shell (zsh+starship)     │
 │  · branding (GRUB/GDM/Plymouth/wallpaper/avatar)         │
 ├─────────────────────────────────────────────────────────┤
-│  Base Vanilla OS 2  (heredado, maduro)                   │
-│  · ABRoot (A/B atómico, rollback)   · GNOME              │
-│  · lpkg (capa de paquetes)   · apx (contenedores)        │
-│  · composefs / fs-verity (integridad)                    │
+│  Vanilla OS 2 base  (inherited, mature)                  │
+│  · ABRoot (atomic A/B, rollback)   · GNOME               │
+│  · lpkg (package layer)   · apx (containers)             │
+│  · composefs / fs-verity (integrity)                     │
 └─────────────────────────────────────────────────────────┘
 ```
 
-- **ABRoot** — dos roots (A/B); cada update es transaccional y reversible.
-- **lpkg** — bloquea/desbloquea la capa de paquetes del sistema base (así inyectamos nuestro stack).
-- **apx** — instalar software *encima* en contenedores rootless, sin tocar el sistema base.
-- **composefs + fs-verity** — integridad del sistema de archivos heredada de Vanilla.
+- **ABRoot** — two roots (A/B); every update is transactional and reversible.
+- **lpkg** — locks/unlocks the base system's package layer (that's how we inject our stack).
+- **apx** — install software *on top* in rootless containers, without touching the base system.
+- **composefs + fs-verity** — filesystem integrity inherited from Vanilla.
 
-Detalle del stack y decisiones de diseño: [`docs/adr/`](docs/adr/).
+Stack details and design decisions: [`docs/adr/`](docs/adr/).
 
-## Cómo se construye
+## How it's built
 
-Hidralisk OS se arma con dos artefactos, ambos buildeados en infraestructura propia:
+Hidralisk OS is made of two artifacts, both built on our own infrastructure:
 
-| Artefacto | Qué es | Dónde |
+| Artifact | What it is | Where |
 |---|---|---|
-| **Imagen OCI** | El sistema en sí, derivado de Vanilla vía [Vib](https://github.com/Vanilla-OS/Vib) | [`vib/`](vib/) → `ghcr.io/hidr4lisk/hidralisk-os` |
-| **ISO instalable** | Medio de instalación que despliega la imagen OCI | [`iso/`](iso/) |
+| **OCI image** | The system itself, derived from Vanilla via [Vib](https://github.com/Vanilla-OS/Vib) | [`vib/`](vib/) → `ghcr.io/hidr4lisk/hidralisk-os` |
+| **Installable ISO** | Installation medium that deploys the OCI image | [`iso/`](iso/) |
 
 ```bash
-# Imagen (resumen — ver vib/README.md)
-./vib-amd64 build vib/recipe.yml          # receta → Containerfile
+# Image (summary — see vib/README.md)
+./vib-amd64 build vib/recipe.yml          # recipe → Containerfile
 podman build -t hidralisk-os -f vib/Containerfile vib/
-# La ISO usa el toolchain live de Vanilla con nuestros hooks (ver iso/README.md)
+# The ISO uses Vanilla's live toolchain with our hooks (see iso/README.md)
 ```
 
-El instalador baja la imagen OCI publicada en GHCR (que **debe permanecer pública**) y la despliega
-en disco con ABRoot.
+The installer downloads the OCI image published on GHCR (which **must remain public**) and deploys
+it to disk with ABRoot.
 
 ## Roadmap
 
-Lo que viene (más fases de hardening, pulido del branding del instalador, mejoras de `hidrafetch`)
-está en [`ROADMAP.md`](ROADMAP.md).
+What's next (more hardening phases, installer branding polish, `hidrafetch` improvements)
+lives in [`ROADMAP.md`](ROADMAP.md).
 
-## Licencia
+## License
 
 [MIT](LICENSE).

@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hidralisk OS — Linux inmutable, endurecido de fábrica</title>
+<meta name="description" content="Hidralisk OS: una distro Linux inmutable y endurecida por defecto, construida sobre Vanilla OS 2. SSH apagado, cero puertos abiertos, updates atómicos con rollback. Open source (MIT).">
+<meta property="og:title" content="Hidralisk OS — immutable, hardened-by-default Linux">
+<meta property="og:description" content="SSH off, zero open ports, read-only base, atomic A/B updates with rollback. Open source (MIT).">
+<meta property="og:image" content="https://hidr4lisk.github.io/hidralisk-os/web/logo-white.png">
+<meta property="og:type" content="website">
+<link rel="icon" type="image/png" href="web/logo-white.png">
+<style>
+:root{
+  --bg:#0a0e0c; --surface:#0d1310; --surface2:#131a16;
+  --border:#1d2a22; --border-strong:#223229;
+  --accent:#22e584; --accent-glow:rgba(34,229,132,.25);
+  --text:#eef2ef; --text-soft:#c7cfc9; --text-dim:#7d8781; --text-disabled:#5c6862;
+  --font:'Hack','JetBrains Mono','Cascadia Code',ui-monospace,Menlo,Consolas,'DejaVu Sans Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);line-height:1.6;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(1100px 520px at 50% -8%,rgba(34,229,132,.06),transparent 60%);pointer-events:none;z-index:0;}
+a{color:var(--accent);}
+img{max-width:100%;}
+
+/* ── Top-bar compartida (mismas medidas que warp/shield/tech/pentool; accent sage) ── */
+.top-bar{--nav-accent:#98B4A6;--nav-pad:1rem;
+  position:sticky;top:0;z-index:200;height:36px;background:rgba(13,17,23,.92);
+  border-bottom:1px solid var(--border);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
+@media (min-width:640px){.top-bar{--nav-pad:1.5rem;}}
+@media (min-width:1024px){.top-bar{--nav-pad:3rem;}}
+@media (min-width:1280px){.top-bar{--nav-pad:4rem;}}
+.top-bar__inner{max-width:1320px;margin:0 auto;height:100%;padding-inline:var(--nav-pad);
+  display:flex;align-items:center;justify-content:space-between;gap:16px;}
+.top-bar__left,.top-bar__right{display:flex;align-items:center;gap:12px;
+  font-size:.72rem;color:var(--text-dim);letter-spacing:.12em;text-transform:uppercase;}
+.tool-select{appearance:none;-webkit-appearance:none;background-color:transparent;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%2398B4A6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 8px center;background-size:8px 5px;
+  border:1px solid var(--nav-accent);color:var(--nav-accent);font-family:var(--font);
+  font-size:.72rem;font-weight:700;letter-spacing:.08em;padding:3px 28px 3px 8px;
+  cursor:pointer;border-radius:2px;}
+.tool-select:focus-visible{outline:2px solid var(--nav-accent);outline-offset:2px;}
+.lang-toggle{display:flex;align-items:center;gap:8px;}
+.lang-btn{background:transparent;border:1px solid var(--border);color:var(--text-dim);
+  font-family:var(--font);font-size:.72rem;padding:2px 8px;cursor:pointer;
+  letter-spacing:.1em;min-height:24px;min-width:36px;border-radius:2px;
+  transition:border-color .15s,color .15s;}
+.lang-btn:hover{border-color:var(--nav-accent);color:var(--nav-accent);}
+.lang-btn.active{border-color:var(--nav-accent);color:var(--nav-accent);}
+.lang-sep{color:var(--border);font-size:.72rem;}
+
+/* ── Layout ── */
+.wrap{max-width:1000px;margin:0 auto;padding:0 24px;position:relative;z-index:1;}
+section{padding:88px 0;border-bottom:1px solid var(--border);}
+.eyebrow{color:var(--accent);font-weight:700;font-size:.95rem;letter-spacing:.12em;margin-bottom:26px;}
+h2{font-size:clamp(1.9rem,4.5vw,2.9rem);line-height:1.15;letter-spacing:-.5px;margin-bottom:22px;}
+.body-txt{color:var(--text-soft);font-size:1.06rem;max-width:46em;}
+.body-txt b{color:var(--text);}
+.punch{color:var(--accent);font-weight:700;font-size:1.06rem;margin-top:26px;max-width:44em;}
+
+/* ── Hero ── */
+.hero{padding:96px 0 80px;text-align:center;border-bottom:1px solid var(--border);}
+.hero .prompt{font-size:1.05rem;color:var(--text-dim);}
+.hero .prompt .u{color:var(--accent);font-weight:700;}
+.hero img.logo{height:200px;margin:34px auto 10px;filter:drop-shadow(0 0 70px var(--accent-glow));}
+.hero h1{font-size:clamp(2.6rem,7vw,4.4rem);letter-spacing:-1px;margin-top:8px;}
+.hero .tagline{color:var(--text-soft);font-size:clamp(1rem,2.4vw,1.25rem);margin:18px auto 0;max-width:38em;}
+.hero .badges{color:var(--text-dim);margin-top:22px;font-size:.95rem;}
+.hero .ctas{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-top:40px;}
+.btn{display:inline-block;padding:15px 30px;border-radius:10px;font-weight:700;
+  font-size:1rem;text-decoration:none;letter-spacing:.03em;transition:transform .12s,box-shadow .12s;}
+.btn-primary{background:var(--accent);color:#04130b;box-shadow:0 0 34px var(--accent-glow);}
+.btn-secondary{border:1px solid var(--border-strong);color:var(--text-soft);}
+.btn:hover{transform:translateY(-2px);}
+.hero .relnote{margin-top:26px;color:var(--text-disabled);font-size:.86rem;}
+
+/* ── Terminal ── */
+.term{background:var(--surface);border:1px solid var(--border-strong);border-radius:14px;
+  overflow:hidden;box-shadow:0 18px 60px rgba(0,0,0,.55);margin-top:36px;}
+.term .bar{display:flex;align-items:center;gap:9px;background:var(--surface2);
+  padding:12px 18px;border-bottom:1px solid var(--border-strong);}
+.term .bar i{width:13px;height:13px;border-radius:50%;display:block;}
+.term .bar i:nth-child(1){background:#ff5f56;}.term .bar i:nth-child(2){background:#ffbd2e;}.term .bar i:nth-child(3){background:#27c93f;}
+.term .bar span{color:#8b958f;font-size:.82rem;margin-left:8px;}
+.term .scr{padding:22px 26px;font-size:.95rem;line-height:1.65;overflow-x:auto;}
+.pr{color:var(--accent);font-weight:700;}
+.dim{color:var(--text-dim);}
+
+/* ── A/B slots ── */
+.slots{display:flex;gap:22px;align-items:stretch;margin-top:36px;flex-wrap:wrap;}
+.slot{flex:1;min-width:230px;border-radius:14px;padding:24px;}
+.slot.a{border:2px solid var(--accent);background:rgba(34,229,132,.06);}
+.slot.b{border:2px dashed #3a4a41;}
+.slot .t{font-weight:700;font-size:1.1rem;}
+.slot.a .t{color:var(--accent);}.slot.b .t{color:#8b958f;}
+.slot p{font-size:.92rem;color:var(--text-dim);margin-top:8px;}
+.slots .arr{display:flex;align-items:center;color:var(--text-disabled);font-size:1.6rem;}
+
+/* ── Checklist ── */
+.ck{list-style:none;margin-top:30px;display:flex;flex-direction:column;gap:16px;font-size:1.04rem;}
+.ck li{display:flex;gap:14px;color:var(--text-soft);}
+.ck li::before{content:'✓';color:var(--accent);font-weight:700;flex-shrink:0;}
+
+/* ── hidrafetch ── */
+.fetch{display:flex;gap:34px;align-items:flex-start;flex-wrap:wrap;}
+.fetch img{width:250px;}
+.fetch .info{font-size:.95rem;line-height:1.8;}
+.fetch .info .hd{color:var(--accent);font-weight:700;}
+.fetch .info .sep{color:#3a4a41;}
+.klist{margin-top:18px;line-height:1.75;font-size:.95rem;}
+.klist .ok{color:var(--accent);}
+
+/* ── Desktop ── */
+.shot{border:1px solid var(--border-strong);border-radius:14px;overflow:hidden;
+  box-shadow:0 18px 60px rgba(0,0,0,.55);margin-top:36px;}
+.shot img{display:block;width:100%;}
+
+/* ── Pipeline ── */
+.pipe{display:flex;align-items:center;gap:14px;margin-top:36px;flex-wrap:wrap;font-size:.95rem;font-weight:700;}
+.pipe .box{border:1px solid var(--border-strong);border-radius:10px;padding:13px 18px;color:var(--text-soft);white-space:nowrap;}
+.pipe .box.last{border:2px solid var(--accent);color:var(--accent);}
+.pipe .a{color:var(--accent);}
+.doclinks{margin-top:30px;font-size:.95rem;color:var(--text-dim);}
+.doclinks a{margin-right:22px;}
+
+/* ── Download ── */
+#descargar{border-bottom:none;}
+.dl-card{background:var(--surface);border:1px solid var(--accent);border-radius:16px;
+  padding:34px;margin-top:36px;box-shadow:0 0 44px rgba(34,229,132,.09);}
+.dl-card .ver{color:var(--accent);font-weight:700;font-size:1.25rem;}
+.dl-assets{list-style:none;margin-top:20px;display:flex;flex-direction:column;gap:12px;}
+.dl-assets a{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  border:1px solid var(--border-strong);border-radius:10px;padding:14px 18px;
+  text-decoration:none;color:var(--text);font-size:.95rem;transition:border-color .15s;}
+.dl-assets a:hover{border-color:var(--accent);}
+.dl-assets .sz{color:var(--text-dim);}
+.steps{counter-reset:st;margin-top:44px;display:flex;flex-direction:column;gap:26px;}
+.step{display:flex;gap:20px;}
+.step::before{counter-increment:st;content:counter(st,decimal-leading-zero);
+  color:var(--accent);font-weight:700;font-size:1.15rem;flex-shrink:0;}
+.step .st-t{font-weight:700;margin-bottom:6px;}
+.step p{color:var(--text-dim);font-size:.93rem;}
+.step code,.creds code{background:var(--surface2);border:1px solid var(--border-strong);
+  border-radius:6px;padding:2px 8px;font-size:.88em;color:var(--text-soft);white-space:nowrap;}
+.step .cmd{display:block;background:var(--surface);border:1px solid var(--border-strong);
+  border-radius:8px;padding:10px 14px;margin-top:8px;font-size:.88rem;color:var(--text-soft);
+  overflow-x:auto;white-space:pre;}
+.reqs{margin-top:44px;color:var(--text-dim);font-size:.93rem;}
+.reqs b{color:var(--text-soft);}
+.creds{margin-top:30px;border:1px solid #6b5b1e;background:rgba(255,189,46,.05);
+  border-radius:12px;padding:20px 24px;font-size:.93rem;color:var(--text-soft);}
+.creds .t{color:#ffbd2e;font-weight:700;margin-bottom:8px;}
+
+/* ── Footer ── */
+footer{border-top:1px solid var(--border);padding:34px 24px 44px;text-align:center;
+  color:var(--text-disabled);font-size:.85rem;}
+footer .brand{color:var(--accent);font-weight:700;}
+
+@media (max-width:640px){
+  section{padding:64px 0;}
+  .hero{padding:70px 0 60px;}
+  .hero img.logo{height:140px;}
+  .fetch img{width:200px;}
+  .slots .arr{display:none;}
+}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="top-bar__inner">
+    <div class="top-bar__left">
+      <select class="tool-select" id="toolSelect" aria-label="Hidr4lisk tools">
+        <option value="https://hidralisk.online">Hidr4lisk_</option>
+        <option value="https://hidr4lisk.github.io/hidralisk-os" selected>HIDRALISK OS</option>
+        <option value="https://hidr4lisk.github.io/warp">WARP</option>
+        <option value="https://hidr4lisk.github.io/shield">SHIELD</option>
+        <option value="https://hidr4lisk.github.io/tech">TECH</option>
+        <option value="https://hidr4lisk.github.io/pentool">PENTOOL</option>
+        <option value="https://github.com/hidr4lisk/swarm">SWARM</option>
+      </select>
+    </div>
+    <div class="top-bar__right">
+      <nav class="lang-toggle" aria-label="Language selector">
+        <button class="lang-btn" data-lang="en" aria-pressed="false">EN</button>
+        <span class="lang-sep" aria-hidden="true">/</span>
+        <button class="lang-btn active" data-lang="es" aria-pressed="true">ES</button>
+      </nav>
+    </div>
+  </div>
+</div>
+
+<!-- ── Hero ── -->
+<header class="hero">
+  <div class="wrap">
+    <div class="prompt"><span class="u">hidra@hidralisk</span>:~$ <span aria-hidden="true">█</span></div>
+    <img class="logo" src="web/logo-white.png" alt="Hidralisk OS dragon logo">
+    <h1>Hidralisk OS</h1>
+    <p class="tagline" data-i18n="tagline">Un Linux <b>inmutable</b> y <b>endurecido de fábrica</b>. Instalá, booteá, trabajá — sin miedo a romperlo.</p>
+    <p class="badges" data-i18n="badges">inmutable · seguro de fábrica · open source (MIT)</p>
+    <div class="ctas">
+      <a class="btn btn-primary" href="#descargar" data-i18n="cta_dl">⬇ DESCARGAR ISO</a>
+      <a class="btn btn-secondary" href="https://github.com/hidr4lisk/hidralisk-os" target="_blank" rel="noopener">GITHUB →</a>
+    </div>
+    <p class="relnote"><span id="relTag">v0.1.1</span> · <span data-i18n="relnote">verificada end-to-end · construida sobre Vanilla OS 2</span></p>
+  </div>
+</header>
+
+<!-- ── 01 cero puertos ── -->
+<section>
+  <div class="wrap">
+    <p class="eyebrow" data-i18n="s1_eyebrow">// 01 · CERO PUERTOS</p>
+    <h2 data-i18n="s1_h">No escucha a nadie.</h2>
+    <p class="body-txt" data-i18n-html="s1_body"><b>SSH apagado. Firewall cerrado. Cero puertos abiertos.</b> Así sale de fábrica: recién instalada, tu máquina no expone nada a la red. Si necesitás SSH, lo prendés con dos comandos — y arranca ya endurecido (<code>PermitRootLogin no</code>).</p>
+    <div class="term"><div class="bar"><i></i><i></i><i></i><span>hidra@hidralisk: ~</span></div><div class="scr">
+      <div><span class="pr">$</span> ss -tln</div>
+      <div class="dim">State&nbsp;&nbsp;Recv-Q&nbsp;&nbsp;Send-Q&nbsp;&nbsp;Local Address:Port</div>
+      <div class="dim" data-i18n="s1_silence">(nada. silencio.)</div>
+      <div style="margin-top:14px;"><span class="pr">$</span> sudo ufw status</div>
+      <div>Status: <span class="pr" style="font-weight:400;">active</span> — deny (incoming)</div>
+    </div></div>
+    <p class="punch" data-i18n="s1_punch">La superficie de ataque más chica es la que no existe.</p>
+  </div>
+</section>
+
+<!-- ── 02 inmutable ── -->
+<section>
+  <div class="wrap">
+    <p class="eyebrow" data-i18n="s2_eyebrow">// 02 · INMUTABLE</p>
+    <h2 data-i18n="s2_h">Rompela. Te espero.</h2>
+    <p class="body-txt" data-i18n-html="s2_body">El sistema base es de <b>solo lectura</b>. Cada update es <b>atómico</b>: entra completo o no entra. ¿Salió mal? <b>Rollback automático</b> al estado anterior (ABRoot A/B).</p>
+    <div class="slots">
+      <div class="slot a"><div class="t">SLOT A ✓</div><p data-i18n="s2_slota">sistema actual — intacto, booteable</p></div>
+      <div class="arr" aria-hidden="true">⇄</div>
+      <div class="slot b"><div class="t">SLOT B ⟳</div><p data-i18n="s2_slotb">acá aterriza el update — si falla, ni te enterás</p></div>
+    </div>
+    <p class="punch" data-i18n="s2_punch">Nunca más «se me murió el sistema por un update».</p>
+  </div>
+</section>
+
+<!-- ── 03 seguro de fábrica ── -->
+<section>
+  <div class="wrap">
+    <p class="eyebrow" data-i18n="s3_eyebrow">// 03 · SEGURO DE FÁBRICA</p>
+    <h2 data-i18n="s3_h">Endurecido antes de tu primer login.</h2>
+    <ul class="ck">
+      <li data-i18n="s3_i1">firewall activo: deny incoming, sin excepciones</li>
+      <li data-i18n="s3_i2">SSH apagado + login de root bloqueado</li>
+      <li data-i18n="s3_i3">kernel blindado: ASLR, punteros ocultos, symlinks protegidos, SYN cookies</li>
+      <li data-i18n="s3_i4">kexec deshabilitado: nadie te cambia el kernel en caliente</li>
+    </ul>
+    <p class="punch" data-i18n="s3_punch">No es un checklist que aplicás después de instalar. Ya viene puesto.</p>
+  </div>
+</section>
+
+<!-- ── 04 hidrafetch ── -->
+<section>
+  <div class="wrap">
+    <p class="eyebrow" data-i18n="s4_eyebrow">// 04 · SE AUDITA SOLO</p>
+    <h2 data-i18n="s4_h">La distro te muestra su postura de seguridad.</h2>
+    <p class="body-txt" data-i18n-html="s4_body"><b>hidrafetch</b>, hecho para esto: abrís la terminal y sabés exactamente qué tan blindado está tu sistema. Solo stdlib de Python, sin dependencias.</p>
+    <div class="term"><div class="bar"><i></i><i></i><i></i><span>hidra@hidralisk: ~</span></div><div class="scr">
+      <div style="margin-bottom:16px;"><span class="pr">$</span> hidrafetch</div>
+      <div class="fetch">
+        <img src="web/dragon-ascii.png" alt="hidrafetch dragon art">
+        <div class="info">
+          <div class="hd">hidralisk — Hidralisk OS</div>
+          <div class="sep">────────────────────────</div>
+          <div><span class="dim">OS&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>Hidralisk OS 0.1.1</div>
+          <div><span class="dim">Base&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>Vanilla OS 2 (ABRoot)</div>
+          <div><span class="dim">Shell&nbsp;&nbsp;&nbsp;&nbsp;</span>zsh + starship</div>
+          <div><span class="dim">Terminal&nbsp;</span>Ptyxis</div>
+          <div><span class="dim">Root&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span data-i18n="s4_ro">solo lectura</span></div>
+          <div><span class="dim">Updates&nbsp;&nbsp;</span>A/B + rollback</div>
+        </div>
+      </div>
+      <div class="klist">
+        <div class="hd" style="color:var(--accent);font-weight:700;">SEGURIDAD POR DEFECTO&nbsp;&nbsp;🛡️ <span data-i18n="s4_verdict">ENDURECIDO</span></div>
+        <div><span class="ok">●</span> Firewall (ufw) — <span data-i18n="s4_k1">activo · deny incoming</span></div>
+        <div><span class="ok">●</span> SSH — <span data-i18n="s4_k2">apagado</span></div>
+        <div><span class="ok">●</span> ASLR / kptr / symlinks — <span data-i18n="s4_k3">endurecidos</span></div>
+        <div><span class="ok">●</span> kexec — <span data-i18n="s4_k4">deshabilitado</span></div>
+      </div>
+    </div></div>
+  </div>
+</section>
+
+<!-- ── 05 escritorio ── -->
+<section>
+  <div class="wrap">
+    <p class="eyebrow" data-i18n="s5_eyebrow">// 05 · LISTO PARA USAR</p>
+    <h2 data-i18n="s5_h">Familiar por fuera. Blindado por dentro.</h2>
+    <p class="body-txt" data-i18n-html="s5_body">Escritorio <b>tipo Mint</b>: barra y menú donde los esperás. <b>zsh + Starship</b>, <b>Ptyxis</b> como único terminal, tema oscuro, <b>sudo listo</b>. Todo por defecto, nada para configurar.</p>
+    <div class="shot"><img src="web/desktop.png" alt="Hidralisk OS desktop (real screenshot)"></div>
+  </div>
+</section>
+
+<!-- ── 06 cómo se hizo ── -->
+<section>
+  <div class="wrap">
+    <p class="eyebrow" data-i18n="s6_eyebrow">// 06 · CÓMO SE HIZO</p>
+    <h2 data-i18n="s6_h">No es un fork con wallpaper.</h2>
+    <p class="body-txt" data-i18n-html="s6_body">Imagen de sistema <b>propia</b> (OCI, construida con <a href="https://github.com/Vanilla-OS/Vib" target="_blank" rel="noopener">Vib</a> sobre Vanilla OS 2) → <b>ISO instalable</b> → hardening y branding de punta a punta. Todo <b>reproducible</b>, todo en GitHub.</p>
+    <div class="pipe">
+      <div class="box">receta.yml</div><span class="a">→</span>
+      <div class="box" data-i18n="s6_oci">imagen OCI</div><span class="a">→</span>
+      <div class="box">ISO</div><span class="a">→</span>
+      <div class="box last" data-i18n="s6_pc">🐉 tu PC</div>
+    </div>
+    <p class="punch" data-i18n="s6_punch">Lo hice para aprender cómo se construye una distro de verdad. Resultado: instala, bootea, anda.</p>
+    <p class="doclinks">
+      <a href="https://github.com/hidr4lisk/hidralisk-os/blob/main/HARDENING.md" target="_blank" rel="noopener">HARDENING.md</a>
+      <a href="https://github.com/hidr4lisk/hidralisk-os/blob/main/ROADMAP.md" target="_blank" rel="noopener">ROADMAP.md</a>
+      <a href="https://github.com/hidr4lisk/hidralisk-os/tree/main/docs/adr" target="_blank" rel="noopener">ADRs →</a>
+    </p>
+  </div>
+</section>
+
+<!-- ── Descarga ── -->
+<section id="descargar">
+  <div class="wrap">
+    <p class="eyebrow" data-i18n="dl_eyebrow">// DESCARGA</p>
+    <h2 data-i18n="dl_h">Instalala en tu máquina.</h2>
+    <p class="body-txt" data-i18n-html="dl_body">La ISO va <b>partida en dos</b> (GitHub limita cada archivo a 2 GiB). Bajás las dos partes, las unís con un comando y flasheás. Los links siempre apuntan al <b>último release</b>.</p>
+
+    <div class="dl-card">
+      <div class="ver" id="dlVer">Hidralisk OS v0.1.1</div>
+      <ul class="dl-assets" id="dlAssets">
+        <li><a href="https://github.com/hidr4lisk/hidralisk-os/releases/download/v0.1.1/HidraliskOS-0.1.1-amd64.iso.part00">HidraliskOS-0.1.1-amd64.iso.part00 <span class="sz">1.5 GB</span></a></li>
+        <li><a href="https://github.com/hidr4lisk/hidralisk-os/releases/download/v0.1.1/HidraliskOS-0.1.1-amd64.iso.part01">HidraliskOS-0.1.1-amd64.iso.part01 <span class="sz">692 MB</span></a></li>
+        <li><a href="https://github.com/hidr4lisk/hidralisk-os/releases/download/v0.1.1/SHA256SUMS.txt">SHA256SUMS.txt <span class="sz">&lt;1 KB</span></a></li>
+      </ul>
+    </div>
+
+    <div class="steps">
+      <div class="step"><div>
+        <div class="st-t" data-i18n="st1_t">Bajá las dos partes + SHA256SUMS.txt</div>
+        <p data-i18n="st1_p">Las tres cosas al mismo directorio.</p>
+      </div></div>
+      <div class="step"><div>
+        <div class="st-t" data-i18n="st2_t">Rearmá la ISO</div>
+        <code class="cmd">cat HidraliskOS-*-amd64.iso.part* &gt; HidraliskOS-amd64.iso</code>
+        <p data-i18n-html="st2_p">En Windows: <code>copy /b parte00+parte01 HidraliskOS-amd64.iso</code></p>
+      </div></div>
+      <div class="step"><div>
+        <div class="st-t" data-i18n="st3_t">Verificá la integridad</div>
+        <code class="cmd">sha256sum -c SHA256SUMS.txt</code>
+        <p data-i18n="st3_p">Tiene que dar OK para la ISO completa.</p>
+      </div></div>
+      <div class="step"><div>
+        <div class="st-t" data-i18n="st4_t">Flasheá un USB y booteá</div>
+        <p data-i18n-html="st4_p">Con <a href="https://www.ventoy.net" target="_blank" rel="noopener">Ventoy</a>, balenaEtcher o <code>dd</code>. Booteá el USB (UEFI) y seguí el instalador.</p>
+      </div></div>
+    </div>
+
+    <p class="reqs" data-i18n-html="reqs"><b>Requisitos:</b> x86_64 (amd64) · UEFI · 4+ GB RAM · ~40 GB de disco · conexión a internet durante la instalación (el instalador descarga la imagen del sistema).</p>
+
+    <div class="creds">
+      <div class="t" data-i18n="creds_t">🔑 Credenciales por defecto</div>
+      <span data-i18n-html="creds_p">Usuario <code>hidra</code> / contraseña <code>hidra</code>. Cambiala apenas entres con <code>passwd</code>. SSH viene <b>apagado</b>, así que esas credenciales no dan acceso remoto. El autologin aplica solo a la instalación inicial.</span>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span class="brand">Hidralisk OS</span> · MIT ·
+  <a href="https://github.com/hidr4lisk/hidralisk-os" target="_blank" rel="noopener">github.com/hidr4lisk/hidralisk-os</a> ·
+  <span data-i18n="foot">hecho para aprender, endurecido en serio</span> 🐉
+</footer>
+
+<script>
+/* ── i18n ── */
+const I18N = {
+  en: {
+    tagline: 'An <b>immutable</b> Linux, <b>hardened out of the box</b>. Install, boot, work — without fear of breaking it.',
+    badges: 'immutable · secure by default · open source (MIT)',
+    cta_dl: '⬇ DOWNLOAD ISO',
+    relnote: 'verified end-to-end · built on Vanilla OS 2',
+    s1_eyebrow: '// 01 · ZERO PORTS', s1_h: 'It listens to no one.',
+    s1_body: '<b>SSH off. Firewall closed. Zero open ports.</b> That\'s how it ships: freshly installed, your machine exposes nothing to the network. Need SSH? Two commands — and it starts already hardened (<code>PermitRootLogin no</code>).',
+    s1_silence: '(nothing. silence.)',
+    s1_punch: 'The smallest attack surface is the one that doesn\'t exist.',
+    s2_eyebrow: '// 02 · IMMUTABLE', s2_h: 'Break it. I\'ll wait.',
+    s2_body: 'The base system is <b>read-only</b>. Every update is <b>atomic</b>: it lands complete or not at all. Something went wrong? <b>Automatic rollback</b> to the previous state (ABRoot A/B).',
+    s2_slota: 'current system — intact, bootable',
+    s2_slotb: 'updates land here — if it fails, you won\'t even notice',
+    s2_punch: 'Never again "an update killed my system".',
+    s3_eyebrow: '// 03 · SECURE BY DEFAULT', s3_h: 'Hardened before your first login.',
+    s3_i1: 'firewall on: deny incoming, no exceptions',
+    s3_i2: 'SSH off + root login blocked',
+    s3_i3: 'kernel hardened: ASLR, hidden pointers, protected symlinks, SYN cookies',
+    s3_i4: 'kexec disabled: nobody hot-swaps your kernel',
+    s3_punch: 'It\'s not a checklist you apply after installing. It ships applied.',
+    s4_eyebrow: '// 04 · IT AUDITS ITSELF', s4_h: 'The distro shows you its security posture.',
+    s4_body: '<b>hidrafetch</b>, built for this: open the terminal and know exactly how hardened your system is. Python stdlib only, zero dependencies.',
+    s4_ro: 'read-only', s4_verdict: 'HARDENED',
+    s4_k1: 'active · deny incoming', s4_k2: 'off', s4_k3: 'hardened', s4_k4: 'disabled',
+    s5_eyebrow: '// 05 · READY TO USE', s5_h: 'Familiar outside. Armored inside.',
+    s5_body: '<b>Mint-style</b> desktop: panel and menu where you expect them. <b>zsh + Starship</b>, <b>Ptyxis</b> as the only terminal, dark theme, <b>sudo ready</b>. All by default, nothing to configure.',
+    s6_eyebrow: '// 06 · HOW IT\'S BUILT', s6_h: 'Not a fork with a wallpaper.',
+    s6_body: 'A <b>custom</b> system image (OCI, built with <a href="https://github.com/Vanilla-OS/Vib" target="_blank" rel="noopener">Vib</a> on top of Vanilla OS 2) → <b>installable ISO</b> → hardening and branding end to end. All <b>reproducible</b>, all on GitHub.',
+    s6_oci: 'OCI image', s6_pc: '🐉 your PC',
+    s6_punch: 'I built it to learn how a real distro is made. Result: it installs, it boots, it works.',
+    dl_eyebrow: '// DOWNLOAD', dl_h: 'Install it on your machine.',
+    dl_body: 'The ISO ships <b>split in two</b> (GitHub caps files at 2 GiB). Download both parts, join them with one command and flash. Links always point to the <b>latest release</b>.',
+    st1_t: 'Download both parts + SHA256SUMS.txt', st1_p: 'All three into the same directory.',
+    st2_t: 'Rebuild the ISO',
+    st2_p: 'On Windows: <code>copy /b part00+part01 HidraliskOS-amd64.iso</code>',
+    st3_t: 'Verify integrity', st3_p: 'It must report OK for the full ISO.',
+    st4_t: 'Flash a USB and boot',
+    st4_p: 'With <a href="https://www.ventoy.net" target="_blank" rel="noopener">Ventoy</a>, balenaEtcher or <code>dd</code>. Boot the USB (UEFI) and follow the installer.',
+    reqs: '<b>Requirements:</b> x86_64 (amd64) · UEFI · 4+ GB RAM · ~40 GB disk · internet connection during install (the installer downloads the system image).',
+    creds_t: '🔑 Default credentials',
+    creds_p: 'User <code>hidra</code> / password <code>hidra</code>. Change it as soon as you log in with <code>passwd</code>. SSH ships <b>off</b>, so these credentials give no remote access. Autologin applies to the initial install only.',
+    foot: 'built to learn, hardened for real'
+  },
+  es: {
+    tagline: 'Un Linux <b>inmutable</b> y <b>endurecido de fábrica</b>. Instalá, booteá, trabajá — sin miedo a romperlo.',
+    badges: 'inmutable · seguro de fábrica · open source (MIT)',
+    cta_dl: '⬇ DESCARGAR ISO',
+    relnote: 'verificada end-to-end · construida sobre Vanilla OS 2',
+    s1_eyebrow: '// 01 · CERO PUERTOS', s1_h: 'No escucha a nadie.',
+    s1_body: '<b>SSH apagado. Firewall cerrado. Cero puertos abiertos.</b> Así sale de fábrica: recién instalada, tu máquina no expone nada a la red. Si necesitás SSH, lo prendés con dos comandos — y arranca ya endurecido (<code>PermitRootLogin no</code>).',
+    s1_silence: '(nada. silencio.)',
+    s1_punch: 'La superficie de ataque más chica es la que no existe.',
+    s2_eyebrow: '// 02 · INMUTABLE', s2_h: 'Rompela. Te espero.',
+    s2_body: 'El sistema base es de <b>solo lectura</b>. Cada update es <b>atómico</b>: entra completo o no entra. ¿Salió mal? <b>Rollback automático</b> al estado anterior (ABRoot A/B).',
+    s2_slota: 'sistema actual — intacto, booteable',
+    s2_slotb: 'acá aterriza el update — si falla, ni te enterás',
+    s2_punch: 'Nunca más «se me murió el sistema por un update».',
+    s3_eyebrow: '// 03 · SEGURO DE FÁBRICA', s3_h: 'Endurecido antes de tu primer login.',
+    s3_i1: 'firewall activo: deny incoming, sin excepciones',
+    s3_i2: 'SSH apagado + login de root bloqueado',
+    s3_i3: 'kernel blindado: ASLR, punteros ocultos, symlinks protegidos, SYN cookies',
+    s3_i4: 'kexec deshabilitado: nadie te cambia el kernel en caliente',
+    s3_punch: 'No es un checklist que aplicás después de instalar. Ya viene puesto.',
+    s4_eyebrow: '// 04 · SE AUDITA SOLO', s4_h: 'La distro te muestra su postura de seguridad.',
+    s4_body: '<b>hidrafetch</b>, hecho para esto: abrís la terminal y sabés exactamente qué tan blindado está tu sistema. Solo stdlib de Python, sin dependencias.',
+    s4_ro: 'solo lectura', s4_verdict: 'ENDURECIDO',
+    s4_k1: 'activo · deny incoming', s4_k2: 'apagado', s4_k3: 'endurecidos', s4_k4: 'deshabilitado',
+    s5_eyebrow: '// 05 · LISTO PARA USAR', s5_h: 'Familiar por fuera. Blindado por dentro.',
+    s5_body: 'Escritorio <b>tipo Mint</b>: barra y menú donde los esperás. <b>zsh + Starship</b>, <b>Ptyxis</b> como único terminal, tema oscuro, <b>sudo listo</b>. Todo por defecto, nada para configurar.',
+    s6_eyebrow: '// 06 · CÓMO SE HIZO', s6_h: 'No es un fork con wallpaper.',
+    s6_body: 'Imagen de sistema <b>propia</b> (OCI, construida con <a href="https://github.com/Vanilla-OS/Vib" target="_blank" rel="noopener">Vib</a> sobre Vanilla OS 2) → <b>ISO instalable</b> → hardening y branding de punta a punta. Todo <b>reproducible</b>, todo en GitHub.',
+    s6_oci: 'imagen OCI', s6_pc: '🐉 tu PC',
+    s6_punch: 'Lo hice para aprender cómo se construye una distro de verdad. Resultado: instala, bootea, anda.',
+    dl_eyebrow: '// DESCARGA', dl_h: 'Instalala en tu máquina.',
+    dl_body: 'La ISO va <b>partida en dos</b> (GitHub limita cada archivo a 2 GiB). Bajás las dos partes, las unís con un comando y flasheás. Los links siempre apuntan al <b>último release</b>.',
+    st1_t: 'Bajá las dos partes + SHA256SUMS.txt', st1_p: 'Las tres cosas al mismo directorio.',
+    st2_t: 'Rearmá la ISO',
+    st2_p: 'En Windows: <code>copy /b parte00+parte01 HidraliskOS-amd64.iso</code>',
+    st3_t: 'Verificá la integridad', st3_p: 'Tiene que dar OK para la ISO completa.',
+    st4_t: 'Flasheá un USB y booteá',
+    st4_p: 'Con <a href="https://www.ventoy.net" target="_blank" rel="noopener">Ventoy</a>, balenaEtcher o <code>dd</code>. Booteá el USB (UEFI) y seguí el instalador.',
+    reqs: '<b>Requisitos:</b> x86_64 (amd64) · UEFI · 4+ GB RAM · ~40 GB de disco · conexión a internet durante la instalación (el instalador descarga la imagen del sistema).',
+    creds_t: '🔑 Credenciales por defecto',
+    creds_p: 'Usuario <code>hidra</code> / contraseña <code>hidra</code>. Cambiala apenas entres con <code>passwd</code>. SSH viene <b>apagado</b>, así que esas credenciales no dan acceso remoto. El autologin aplica solo a la instalación inicial.',
+    foot: 'hecho para aprender, endurecido en serio'
+  }
+};
+
+function setLang(lang) {
+  const dict = I18N[lang] || I18N.es;
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const k = el.getAttribute('data-i18n');
+    if (dict[k] !== undefined) el.textContent = dict[k];
+  });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => {
+    const k = el.getAttribute('data-i18n-html');
+    if (dict[k] !== undefined) el.innerHTML = dict[k];
+  });
+  document.querySelectorAll('.lang-btn').forEach(b => {
+    const on = b.dataset.lang === lang;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', String(on));
+  });
+  try { localStorage.setItem('hidraos_lang', lang); } catch (e) {}
+}
+document.querySelectorAll('.lang-btn').forEach(b =>
+  b.addEventListener('click', () => setLang(b.dataset.lang)));
+document.getElementById('toolSelect').addEventListener('change', e => {
+  if (e.target.value) window.location.href = e.target.value;
+});
+let saved = null;
+try { saved = localStorage.getItem('hidraos_lang'); } catch (e) {}
+if (saved && saved !== 'es') setLang(saved);
+
+/* ── Release links: apuntar siempre al último release (fallback: v0.1.1 hardcodeado) ── */
+fetch('https://api.github.com/repos/hidr4lisk/hidralisk-os/releases/latest')
+  .then(r => r.ok ? r.json() : null)
+  .then(rel => {
+    if (!rel || !rel.assets || !rel.assets.length) return;
+    document.getElementById('relTag').textContent = rel.tag_name;
+    document.getElementById('dlVer').textContent = 'Hidralisk OS ' + rel.tag_name;
+    const fmt = n => n >= 1073741824 ? (n / 1073741824).toFixed(1) + ' GB'
+               : n >= 1048576 ? Math.round(n / 1048576) + ' MB' : '<1 MB';
+    document.getElementById('dlAssets').innerHTML = rel.assets.map(a =>
+      `<li><a href="${a.browser_download_url}">${a.name} <span class="sz">${fmt(a.size)}</span></a></li>`
+    ).join('');
+  })
+  .catch(() => {});
+</script>
+</body>
+</html>
