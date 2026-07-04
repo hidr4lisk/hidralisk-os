@@ -36,7 +36,7 @@ img{max-width:100%;}
   display:flex;align-items:center;justify-content:space-between;gap:16px;}
 .top-bar__left,.top-bar__right{display:flex;align-items:center;gap:12px;
   font-size:.72rem;color:var(--text-dim);letter-spacing:.12em;text-transform:uppercase;}
-.tool-select{appearance:none;-webkit-appearance:none;background-color:transparent;
+.tool-select{ min-width: 150px;appearance:none;-webkit-appearance:none;background-color:transparent;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%2398B4A6'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 8px center;background-size:8px 5px;
   border:1px solid var(--nav-accent);color:var(--nav-accent);font-family:var(--font);
@@ -176,11 +176,11 @@ footer .brand{color:var(--accent);font-weight:700;}
       <select class="tool-select" id="toolSelect" aria-label="Hidr4lisk tools">
         <option value="https://hidralisk.online">Hidr4lisk_</option>
         <option value="https://hidr4lisk.github.io/hidralisk-os" selected>HIDRALISK OS</option>
-        <option value="https://hidr4lisk.github.io/warp">WARP</option>
-        <option value="https://hidr4lisk.github.io/shield">SHIELD</option>
-        <option value="https://hidr4lisk.github.io/tech">TECH</option>
-        <option value="https://hidr4lisk.github.io/pentool">PENTOOL</option>
         <option value="https://github.com/hidr4lisk/swarm">SWARM</option>
+        <option value="https://hidr4lisk.github.io/pentool">PENTOOL</option>
+        <option value="https://hidr4lisk.github.io/tech">TECH</option>
+        <option value="https://hidr4lisk.github.io/shield">SHIELD</option>
+        <option value="https://hidr4lisk.github.io/warp">WARP</option>
       </select>
     </div>
     <div class="top-bar__right">
