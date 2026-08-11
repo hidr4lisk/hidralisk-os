@@ -74,7 +74,12 @@ h2{font-size:clamp(1.9rem,4.5vw,2.9rem);line-height:1.15;letter-spacing:-.5px;ma
 .hero{padding:96px 0 80px;text-align:center;border-bottom:1px solid var(--border);}
 .hero .prompt{font-size:1.05rem;color:var(--text-dim);}
 .hero .prompt .u{color:var(--accent);font-weight:700;}
-.hero img.logo{height:200px;margin:34px auto 10px;filter:drop-shadow(0 0 70px var(--accent-glow));}
+.hero img.logo{height:200px;margin:34px auto 10px;
+  /* El logo es una silueta BLANCA con alpha, hecha para fondo oscuro. Sobre papel
+     era invisible (verificado con captura). brightness(0) la pasa a tinta negra
+     conservando el alpha, sin tener que generar un asset nuevo. El drop-shadow
+     era un glow: sobre claro se lee como mugre, se saca. */
+  filter:brightness(0) opacity(.9);}
 .hero h1{font-size:clamp(2.6rem,7vw,4.4rem);letter-spacing:-1px;margin-top:8px;}
 .hero .tagline{color:var(--text-soft);font-size:clamp(1rem,2.4vw,1.25rem);margin:18px auto 0;max-width:38em;}
 .hero .badges{color:var(--text-dim);margin-top:22px;font-size:.95rem;}
@@ -207,6 +212,11 @@ footer .brand{color:var(--accent);font-weight:700;}
   #glitch-overlay{display:none;}
 }
 </style>
+<!-- Piel común de los 6 proyectos (tema Inverse). Va DESPUÉS del <style> a
+     propósito: pisa los tokens de este sitio sin obligar a reescribirlo.
+     Fuente de verdad: hidralisk, hidra/static/hidra/landing-kit/.
+     Se distribuye con scripts/sync-landings.sh — NO editar acá, el sync lo pisa. -->
+<link rel="stylesheet" href="hidra-kit/kit.css">
 </head>
 <body>
 <div id="glitch-overlay" aria-hidden="true"></div>
